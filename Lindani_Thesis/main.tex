@@ -1,0 +1,307 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX Template: Project Modified (v 0.2) by jluo
+%
+% Original Source: http://www.howtotex.com
+% Date: February 2019
+% 
+% This is a title page template which be used for articles & reports.
+% 
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{report}
+\usepackage[a4paper]{geometry}
+\usepackage[myheadings]{fullpage}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{fourier}
+\usepackage{algorithm} 
+\usepackage{algpseudocode} 
+\usepackage{amsthm}
+\usepackage{etoolbox}
+\newtheorem{corollary}{Corollary}[section]
+\usepackage[many]{tcolorbox}
+\tcbuselibrary{theorems}
+\usepackage{graphicx, wrapfig, subcaption, setspace, booktabs}
+\usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage[font=small, labelfont=bf]{caption}
+\usepackage[protrusion=true, expansion=true]{microtype}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{sectsty}
+\usepackage{url, lipsum}
+\usepackage{tgbonum}
+\usepackage[colorlinks=true, citecolor=green!60!black, linkcolor=blue, urlcolor=blue]{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tocloft}
+
+% TOC Formatting
+\setlength{\cftpartindent}{0em}           % No indentation for parts
+\setlength{\cftchapindent}{1.8em}         % Chapter indentation under parts
+\setlength{\cftsecindent}{3.8em}          % Section indentation under chapters
+\setlength{\cftsubsecindent}{5.8em}       % Subsection indentation
+
+% Vertical spacing
+\setlength{\cftbeforepartskip}{15pt}      % Space before each part
+\setlength{\cftbeforechapskip}{8pt}       % Space before each chapter
+\setlength{\cftbeforesecskip}{4pt}        % Space before each section
+
+% Font styling
+\renewcommand{\cftpartfont}{\large\scshape\bfseries}
+\renewcommand{\cftpartpagefont}{\large\bfseries}
+\renewcommand{\cftchapfont}{\normalsize\bfseries}
+\renewcommand{\cftchappagefont}{\normalsize}
+
+% Dotted leaders for TOC
+\renewcommand{\cftpartleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftdotsep}{4.5}
+
+% Additional math fonts
+\usepackage{amsfonts,mathrsfs}
+
+% TikZ for neural network diagrams
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, decorations.pathreplacing, calc}
+
+% Code listing colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{14.5pt}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Code listing style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+%==============================================================================
+% BLUE BOXED THEOREM ENVIRONMENTS WITH TITLE BARS
+%==============================================================================
+
+% --- Theorem box (renamed environment to "thmbox" to avoid clashing with amsthm) ---
+\newtcbtheorem[auto counter, number within=section]{thmbox}{Theorem}{
+  colback=white,
+  colframe=blue,
+  fonttitle=\bfseries\color{white},
+  arc=4pt,
+  boxrule=1.5pt,
+  left=8pt,
+  right=8pt,
+  top=12pt,
+  bottom=8pt,
+  before skip=10pt,
+  after skip=10pt,
+  attach boxed title to top left={xshift=10pt,yshift=-9pt},
+  boxed title style={colback=blue, colframe=blue, sharp corners}
+}{thm}
+
+% --- Proof box (optional, lighter blue) ---
+\newtcbtheorem[auto counter, number within=section]{proofbox}{Proof}{
+  colback=white,
+  colframe=blue!60,
+  fonttitle=\bfseries\color{white},
+  arc=4pt,
+  boxrule=1pt,
+  left=8pt,
+  right=8pt,
+  top=12pt,
+  bottom=8pt,
+  before skip=10pt,
+  after skip=10pt,
+  attach boxed title to top left={xshift=10pt,yshift=-9pt},
+  boxed title style={colback=blue!60, colframe=blue!60, sharp corners}
+}{pf}
+
+% --- Blue skins for standard amsthm environments (definition/theorem/lemma/corollary/proof) ---
+\newcounter{definitioncounter}
+\newenvironment{definition}[1][]{%
+  \refstepcounter{definitioncounter}%
+  \begin{tcolorbox}[
+    enhanced jigsaw, breakable,
+    colback=white, colframe=blue!40!black,
+    coltitle=white, fonttitle=\bfseries,
+    boxrule=1pt, arc=2pt,
+    left=8pt, right=8pt, top=8pt, bottom=8pt,
+    before skip=10pt, after skip=10pt,
+    title={Definition \thedefinitioncounter\ifstrempty{#1}{:}{ (#1):}},
+    colbacktitle=blue!40!black,
+  ]
+}{\end{tcolorbox}}
+\newcounter{theoremcounter}
+\newenvironment{theorem}[1][]{%
+  \refstepcounter{theoremcounter}%
+  \begin{tcolorbox}[
+    enhanced jigsaw, breakable,
+    colback=white, colframe=blue!40!black,
+    coltitle=white, fonttitle=\bfseries,
+    boxrule=1pt, arc=2pt,
+    left=8pt, right=8pt, top=8pt, bottom=8pt,
+    before skip=10pt, after skip=10pt,
+    title={Theorem \thetheoremcounter\ifstrempty{#1}{:}{ (#1):}},
+    colbacktitle=blue!40!black,
+  ]
+}{\end{tcolorbox}}
+\newcounter{lemmacounter}
+\newenvironment{lemma}[1][]{%
+  \refstepcounter{lemmacounter}%
+  \begin{tcolorbox}[
+    enhanced jigsaw, breakable,
+    colback=white, colframe=blue!40!black,
+    coltitle=white, fonttitle=\bfseries,
+    boxrule=1pt, arc=2pt,
+    left=8pt, right=8pt, top=8pt, bottom=8pt,
+    before skip=10pt, after skip=10pt,
+    title={Lemma \thelemmacounter\ifstrempty{#1}{:}{ (#1):}},
+    colbacktitle=blue!40!black,
+  ]
+}{\end{tcolorbox}}
+\tcolorboxenvironment{corollary}{
+  colback=white, colframe=blue, boxrule=1.2pt, arc=3pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt,
+  before skip=10pt, after skip=10pt,
+  enhanced jigsaw, breakable
+}
+\tcolorboxenvironment{proof}{
+  colback=white, colframe=blue!50, boxrule=1pt, arc=3pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt,
+  before skip=10pt, after skip=10pt,
+  enhanced jigsaw, breakable
+}
+%==============================================================================
+
+\newcommand{\HRule}[1]{\rule{\linewidth}{#1}}
+\onehalfspacing
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{5}
+\usepackage[numbers]{natbib}
+
+\bibliographystyle{abbrvnat}
+\bibpunct{[}{]}{,}{n}{}{}
+\setlength{\skip\footins}{1.5cm}
+\newcommand{\citets}[1]{\citeauthor{#1}'s \citeyearpar{#1}}
+\renewcommand\bibname{References}  
+
+%-------------------------------------------------------------------------------
+% TITLE PAGE
+%-------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{0.3cm}
+    {\LARGE\bfseries Valuation of Financial Derivatives under X-Value Adjustments using Deep Learning Techniques\par}
+    \vspace{1.5cm}
+    {\Large Lindani Melusi Hlophe\par}
+    \vspace{0.3cm}
+    {\large Student Number: 2579491\par}
+    \vspace{2cm}
+    \includegraphics[width=5cm]{Images/wits-logo.png}\par
+    \vspace{0.8cm}
+    {\normalsize \today\par}
+    \vspace{1cm}
+    {\itshape MSc in Computational and Applied Mathematics,\\
+    University of the Witwatersrand.\par}
+    \vfill
+    {\normalsize A dissertation submitted to the Faculty of Science, University of the Witwatersrand, Johannesburg, in partial fulfilment of the requirements for the degree of Master of Science.\par}
+    \vspace{1cm}
+\end{titlepage}
+
+% --- ABSTRACT ---
+\begin{abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\input{abstract}
+\end{abstract}
+
+\newpage
+
+% --- FRONT MATTER LISTS ---
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+\newpage
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+\newpage
+\chapter*{List of Notations}
+\addcontentsline{toc}{chapter}{List of Notations}
+
+\newpage
+\chapter*{Notation}
+\addcontentsline{toc}{chapter}{Notation}
+
+\tableofcontents
+\newpage
+
+%-------------------------------------------------------------------------------
+% Section title formatting
+\partfont{\color{black}}
+\chapterfont{\color{black}}
+\sectionfont{\color{blue}\scshape}
+\subsectionfont{\color{blue}}
+\subsubsectionfont{\color{black}}
+%-------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------------
+% BODY
+%-------------------------------------------------------------------------------
+    
+\newpage
+\part{Introduction and Background}
+    \include{IntroductionAndBackground}
+
+\part{Theoretical Foundations}
+    \include{TheoraticalFoundations}
+        
+
+\part{Methodology and Models}
+    \include{methodology}
+        
+\part{Results and Analysis}
+
+\part{Conclusion and Future Work}
+    
+\appendix
+\part{Appendices}
+    \chapter{Mathematical Proofs and Derivations}
+    \chapter{Code Implementation Details}
+    \chapter{Additional Numerical Results}
+      
+%-------------------------------------------------------------------------------
+% REFERENCES
+%-------------------------------------------------------------------------------
+\newpage
+\bibliography{mybibliography}
+\addcontentsline{toc}{part}{References}
+
+\end{document}

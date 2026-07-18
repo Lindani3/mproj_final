@@ -1,0 +1,227 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX Template: Project Modified (v 0.2) by jluo
+%
+% Original Source: http://www.howtotex.com
+% Date: February 2019
+% 
+% This is a title page template which be used for articles & reports.
+% 
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11   pt]{report}
+\usepackage[a4paper]{geometry}
+\usepackage[myheadings]{fullpage}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{mdframed}
+\usepackage{fourier}
+\usepackage{algorithm} 
+\usepackage{algpseudocode} 
+\usepackage{amsthm}
+\usepackage{tcolorbox}
+\usepackage{graphicx, wrapfig, subcaption, setspace, booktabs}
+\usepackage[T1]{fontenc}
+\usepackage[font=small, labelfont=bf]{caption}
+\usepackage{fourier}
+\usepackage[protrusion=true, expansion=true]{microtype}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{sectsty}
+\usepackage{url, lipsum}
+\usepackage{tgbonum}
+\usepackage{hyperref}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{tocloft}
+
+% TOC Formatting
+\setlength{\cftpartindent}{0em}           % No indentation for parts
+\setlength{\cftchapindent}{1.8em}         % Chapter indentation under parts
+\setlength{\cftsecindent}{3.8em}          % Section indentation under chapters
+\setlength{\cftsubsecindent}{5.8em}       % Subsection indentation
+
+% Vertical spacing
+\setlength{\cftbeforepartskip}{15pt}      % Space before each part
+\setlength{\cftbeforechapskip}{8pt}       % Space before each chapter
+\setlength{\cftbeforesecskip}{4pt}        % Space before each section
+
+% Font styling
+\renewcommand{\cftpartfont}{\large\scshape\bfseries}
+\renewcommand{\cftpartpagefont}{\large\bfseries}
+\renewcommand{\cftchapfont}{\normalsize\bfseries}
+\renewcommand{\cftchappagefont}{\normalsize}
+
+
+ \usepackage{amsfonts,mathrsfs}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+ 
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstset{style=mystyle}
+% --- Define theorem environments ---
+\newtheorem{definition}{Definition}[section]
+
+% --- Box style for definitions ---
+\newmdenv[
+  linewidth=0.8pt,     % thickness of box border
+  roundcorner=2pt,     % small rounded corners
+  skipabove=10pt,      % vertical space before box
+  skipbelow=10pt       % vertical space after box
+]{defbox}
+
+% --- Environment for boxed definitions ---
+\newenvironment{boxeddefinition}[1][] % optional argument for title
+  {\begin{defbox}\begin{definition}[#1]}
+  {\end{definition}\end{defbox}}
+
+
+\newcommand{\HRule}[1]{\rule{\linewidth}{#1}}
+\onehalfspacing
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{5}
+\usepackage[numbers]{natbib}  % Enable numeric citations
+
+\bibliographystyle{abbrvnat}
+\bibpunct{,}{}{;}{a}{}{}  % to get correct punctuation for bibliography
+\setlength{\skip\footins}{1.5cm}
+\newcommand{\citets}[1]{\citeauthor{#1}'s \citeyearpar{#1}}
+\renewcommand\bibname{References}  
+%-------------------------------------------------------------------------------
+% HEADER & FOOTER
+%-------------------------------------------------------------------------------
+%\pagestyle{fancy}
+%\fancyhf{}
+%\setlength\headheight{15pt}
+%\fancyhead[L]{Student ID: 1034511}
+%\fancyhead[R]{Anglia Ruskin University}
+%\fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
+%-------------------------------------------------------------------------------
+% TITLE PAGE
+%-------------------------------------------------------------------------------
+
+\begin{document}
+{\fontfamily{cmr}\selectfont
+\title{ 
+    \normalsize \textsc{}
+    \\ [1.0cm]
+    \HRule{0.5pt} \\
+    \centering
+    \large \textbf{\uppercase{Valuation of Financial Derivatives under X-Value Adjustments using Deep Learning Techniques}} \\  % Using \large instead of \Large
+    \HRule{0.5pt} \\ [0.3cm]
+    \normalsize \today \\
+    \vspace*{2\baselineskip}
+}
+
+\date{}
+
+\author{
+		Lindani Melusi Hlophe \\ 
+		Student Number: 2579491\\}
+
+\maketitle
+% --- ABSTRACT ---
+\begin{abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\input{abstract} % Your abstract content
+\end{abstract}
+
+\newpage
+
+% --- FRONT MATTER LISTS ---
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+\newpage
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+\newpage
+\chapter*{Acronyms}
+\addcontentsline{toc}{chapter}{Acronyms}
+% Content for acronyms goes here or \input{acronyms}
+
+\newpage
+\chapter*{Notation}
+\addcontentsline{toc}{chapter}{Notation}
+
+
+\tableofcontents
+\newpage
+
+%-------------------------------------------------------------------------------
+% Section title formatting
+\sectionfont{\scshape}
+%-------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------------
+% BODY
+%-------------------------------------------------------------------------------
+    
+\newpage
+\part{Introduction and Research Objectives}
+    \include{IntroductionAndObjectives}
+
+\part{Theoretical Foundations}
+    \include{TheoraticalFoundations}
+        
+
+\part{Literature Review}
+%    \include{notes}
+
+        
+
+\part{Methodology and Models}
+    \include{methodology}
+        
+
+\part{Results and Analysis}
+    
+
+       
+
+\part{Conclusion and Future Work}
+
+    
+\appendix
+\part{Appendices}
+    \chapter{Mathematical Proofs and Derivations}
+        
+    \chapter{Code Implementation Details}
+        
+    \chapter{Additional Numerical Results}
+      
+
+%-------------------------------------------------------------------------------
+% REFERENCES
+%-------------------------------------------------------------------------------
+\newpage
+\bibliography{mybibliography}
+\addcontentsline{toc}{part}{References}
+
+
+\end{document}

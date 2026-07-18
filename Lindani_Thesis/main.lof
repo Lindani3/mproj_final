@@ -1,0 +1,19 @@
+\babel@toc {english}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Typical yield curve shapes: upward-sloping (normal), flat, and inverted.}}{41}{figure.caption.5}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {7.1}{\ignorespaces A feedforward MLP with $L = 3$ layers. Each node applies an activation function to a weighted sum of the preceding layer's outputs. Weight matrices $W_k \in \math@bb {R}^{d_{k-1} \times d_k}$ connect adjacent layers; the layer widths $d_0, \ldots , d_L$ are illustrative.}}{56}{figure.caption.13}%
+\contentsline {figure}{\numberline {7.2}{\ignorespaces The RNN unrolled across three time steps. The recurrence $\mathbf {h}_t = g(W_x \mathbf {x}_t + W_h \mathbf {h}_{t-1} + \mathbf {b})$ applies the same parameter matrices at every step. Training by BPTT requires propagating gradients through the full unrolled graph; for a dependency spanning $k$ steps, this involves a product of $k$ Jacobians that decays or explodes exponentially.}}{61}{figure.caption.20}%
+\contentsline {figure}{\numberline {7.3}{\ignorespaces Internal dataflow of an LSTM cell at time step $t$. The cell state $\mathbf {c}_t$ (horizontal channel) carries long-range memory; the forget gate $\mathbf {f}_t$, input gate $\mathbf {i}_t$, and output gate $\mathbf {o}_t$ regulate what is erased, written, and read at each step. The hidden state $\mathbf {h}_t$ is derived from the cell state via the output gate.}}{63}{figure.caption.22}%
+\contentsline {figure}{\numberline {7.4}{\ignorespaces Internal dataflow of a GRU cell at time step $t$. The update gate $\mathbf {z}_t$ interpolates between the previous state $\mathbf {h}_{t-1}$ (weighted by $1 - \mathbf {z}_t$) and the candidate $\tilde {\mathbf {h}}_t$ (weighted by $\mathbf {z}_t$). The reset gate $\mathbf {r}_t$ controls how much of $\mathbf {h}_{t-1}$ enters the candidate computation. The near-direct path from $\mathbf {h}_{t-1}$ to $\mathbf {h}_t$ when $\mathbf {z}_t \approx 0$ is the mechanism that prevents gradient vanishing across long sequences.}}{65}{figure.caption.24}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {8.1}{\ignorespaces Svensson yield curves (left) and corresponding discount factor curves (right) for five randomly sampled historical dates from the Federal Reserve GSW dataset. The selection illustrates the range of term structure shapes used as proxies for market yield curve data in this study.}}{73}{figure.caption.35}%
+\contentsline {figure}{\numberline {8.2}{\ignorespaces Simulated Hull-White short-rate paths over the ten-year IRS horizon, initialised at $r_0 = \beta _0 + \beta _1$ from the Svensson term structure. The upward drift of the path ensemble reflects the positive slope of the initial forward curve embedded in $\theta (t)$, consistent with an upward-sloping initial yield curve.}}{74}{figure.caption.36}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

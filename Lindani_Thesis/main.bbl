@@ -1,0 +1,526 @@
+\begin{thebibliography}{79}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ametrano and Bianchetti(2013)]{ametrano2013everything}
+F.~M. Ametrano and M.~Bianchetti.
+\newblock \emph{Everything you always wanted to know about multiple interest
+  rate curve bootstrapping but were afraid to ask}, volume 2219548.
+\newblock SSRN, 2013.
+
+\bibitem[Anderson and Ulrych(2023)]{anderson2023accelerated}
+D.~P. Anderson and U.~Ulrych.
+\newblock Accelerated american option pricing with deep neural networks.
+\newblock \emph{Quantitative Finance and Economics}, 7\penalty0 (1):\penalty0
+  207--228, 2023.
+\newblock \doi{10.3934/qfe.2023011}.
+
+\bibitem[Andersson and Oosterlee(2021{\natexlab{a}})]{andersson2021deep}
+K.~Andersson and C.~W. Oosterlee.
+\newblock A deep learning approach for computations of exposure profiles for
+  high-dimensional bermudan options.
+\newblock \emph{Applied Mathematics and Computation}, 408:\penalty0 126332,
+  2021{\natexlab{a}}.
+
+\bibitem[Andersson and
+  Oosterlee(2021{\natexlab{b}})]{andersson2021deeplearning}
+K.~Andersson and C.~W. Oosterlee.
+\newblock Deep learning for {CVA} computations of large portfolios of financial
+  derivatives.
+\newblock \emph{Applied Mathematics and Computation}, 409:\penalty0 126399,
+  2021{\natexlab{b}}.
+\newblock \doi{10.1016/j.amc.2021.126399}.
+
+\bibitem[Avsar(2015)]{avsar2015logic}
+E.~Avsar.
+\newblock The logic and practice of yield curve construction.
+\newblock \emph{Available at SSRN 2594520}, 2015.
+
+\bibitem[Bai et~al.(2022)Bai, Chaolu, and Bilige]{bai2022pinn}
+Y.~Bai, T.~Chaolu, and S.~Bilige.
+\newblock The application of improved physics-informed neural network ({IPINN})
+  method in finance.
+\newblock \emph{Nonlinear Dynamics}, 107:\penalty0 3655--3667, 2022.
+\newblock \doi{10.1007/s11071-021-07146-z}.
+
+\bibitem[{Bank for International Settlements}(2005)]{bis2005zerocoupon}
+{Bank for International Settlements}.
+\newblock Zero-coupon yield curves: Technical documentation.
+\newblock BIS Papers~25, Bank for International Settlements, 2005.
+
+\bibitem[{Basel Committee on Banking Supervision}(2010)]{bcbs2010basel3}
+{Basel Committee on Banking Supervision}.
+\newblock Basel {III}: A global regulatory framework for more resilient banks
+  and banking systems.
+\newblock Technical Report bcbs153, Bank for International Settlements, Dec.
+  2010.
+\newblock URL \url{https://www.bis.org/publ/bcbs153.pdf}.
+\newblock Revised June 2011.
+
+\bibitem[Beck et~al.(2020)Beck, Hutzenthaler, Jentzen, and
+  Kuckuck]{beck2020overview}
+C.~Beck, M.~Hutzenthaler, A.~Jentzen, and B.~Kuckuck.
+\newblock An overview on deep learning-based approximation methods for partial
+  differential equations.
+\newblock \emph{arXiv preprint arXiv:2012.12348}, 2020.
+
+\bibitem[Becker et~al.(2023)Becker, Jentzen, M{\"u}ller, Pesce, and von
+  Wurstemberger]{becker2023learning}
+S.~Becker, A.~Jentzen, M.~S. M{\"u}ller, A.~Pesce, and P.~von Wurstemberger.
+\newblock Learning the random variables in {Monte Carlo} simulations with
+  stochastic gradient descent: machine learning for parametric {PDEs} and
+  financial derivative pricing.
+\newblock \emph{Mathematical Finance}, 33\penalty0 (3):\penalty0 605--635,
+  2023.
+\newblock \doi{10.1111/mafi.12405}.
+
+\bibitem[Bianchetti(2008)]{bianchetti2008two}
+M.~Bianchetti.
+\newblock Two curves, one price: Pricing \& hedging interest rate derivatives
+  decoupling forwarding and discounting yield curves.
+\newblock \emph{One Price: Pricing \& Hedging Interest Rate Derivatives
+  Decoupling Forwarding and Discounting Yield Curves (November 14, 2008)},
+  2008.
+
+\bibitem[Black and Scholes(1973)]{black1973pricing}
+F.~Black and M.~Scholes.
+\newblock The pricing of options and corporate liabilities.
+\newblock \emph{Journal of political economy}, 81\penalty0 (3):\penalty0
+  637--654, 1973.
+
+\bibitem[Blyth(2014)]{blyth2014introduction}
+S.~Blyth.
+\newblock \emph{An introduction to quantitative finance}.
+\newblock Oxford University Press, 2014.
+
+\bibitem[Brigo et~al.(2001)Brigo, Mercurio, et~al.]{brigo2001interest}
+D.~Brigo, F.~Mercurio, et~al.
+\newblock \emph{Interest rate models: theory and practice}, volume~2.
+\newblock Springer, 2001.
+
+\bibitem[Brigo et~al.(2013)Brigo, Morini, and
+  Pallavicini]{brigo2013counterparty}
+D.~Brigo, M.~Morini, and A.~Pallavicini.
+\newblock \emph{Counterparty credit risk, collateral and funding: with pricing
+  cases for all asset classes}.
+\newblock John Wiley \& Sons, 2013.
+
+\bibitem[Burgard and Kjaer(2011{\natexlab{a}})]{burgard2011balance}
+C.~Burgard and M.~Kjaer.
+\newblock In the balance.
+\newblock \emph{C. Burgard, M. Kjaer. In the balance, Risk, November}, pages
+  72--75, 2011{\natexlab{a}}.
+
+\bibitem[Burgard and Kjaer(2011{\natexlab{b}})]{pde_2011}
+C.~Burgard and M.~Kjaer.
+\newblock Partial differential equation representations of derivatives with
+  bilateral counterparty risk and funding costs.
+\newblock \emph{The Journal of Credit Risk}, 7:\penalty0 75--93, 09
+  2011{\natexlab{b}}.
+\newblock \doi{10.21314/JCR.2011.131}.
+
+\bibitem[Canabarro and Duffie(2003)]{canabarro2003measuring}
+E.~Canabarro and D.~Duffie.
+\newblock Measuring and marking counterparty risk.
+\newblock \emph{Asset/Liability Management for Financial Institutions,
+  Institutional Investor Books}, 2003.
+
+\bibitem[Cao et~al.(2020)Cao, Chen, Hull, and Poulos]{cao2020deephedging}
+J.~Cao, J.~Chen, J.~Hull, and Z.~Poulos.
+\newblock Deep hedging of derivatives using reinforcement learning.
+\newblock \emph{The Journal of Financial Data Science}, 3\penalty0
+  (1):\penalty0 10--27, 2020.
+\newblock \doi{10.3905/jfds.2020.1.052}.
+
+\bibitem[Cesari et~al.(2009)Cesari, Aquilina, Charpillon, Filipovic, Lee, and
+  Manda]{cesari2009modelling}
+G.~Cesari, J.~Aquilina, N.~Charpillon, Z.~Filipovic, G.~Lee, and I.~Manda.
+\newblock \emph{Modelling, pricing, and hedging counterparty credit exposure: A
+  technical guide}.
+\newblock Springer Science \& Business Media, 2009.
+
+\bibitem[Chang(2024)]{chang2024stochastic}
+H.~Chang.
+\newblock Analysis of stochastic volatility models in financial derivatives
+  pricing.
+\newblock \emph{Financial Engineering and Risk Management}, 7\penalty0
+  (6):\penalty0 74--82, 2024.
+\newblock \doi{10.23977/ferm.2024.070611}.
+
+\bibitem[Cho et~al.(2014)Cho, van Merrienboer, Gulcehre, Bahdanau, Bougares,
+  Schwenk, and Bengio]{cho2014learning}
+K.~Cho, B.~van Merrienboer, C.~Gulcehre, D.~Bahdanau, F.~Bougares, H.~Schwenk,
+  and Y.~Bengio.
+\newblock Learning phrase representations using {RNN} encoder-decoder for
+  statistical machine translation.
+\newblock In \emph{Proceedings of the 2014 Conference on Empirical Methods in
+  Natural Language Processing}, pages 1724--1734, 2014.
+
+\bibitem[Choi and Kang(2023)]{choi2023calibrate}
+M.~Choi and H.-G. Kang.
+\newblock How to calibrate {Gaussian} two-factor model using swaption.
+\newblock \emph{PLoS ONE}, 18\penalty0 (1):\penalty0 e0280829, 2023.
+\newblock \doi{10.1371/journal.pone.0280829}.
+
+\bibitem[Chung et~al.(2014)Chung, Gulcehre, Cho, and
+  Bengio]{chung2014empirical}
+J.~Chung, C.~Gulcehre, K.~Cho, and Y.~Bengio.
+\newblock Empirical evaluation of gated recurrent neural networks on sequence
+  modeling.
+\newblock \emph{arXiv preprint arXiv:1412.3555}, 2014.
+
+\bibitem[Cox and Ross(1976)]{cox1976valuation}
+J.~C. Cox and S.~A. Ross.
+\newblock The valuation of options for alternative stochastic processes.
+\newblock \emph{Journal of financial economics}, 3\penalty0 (1-2):\penalty0
+  145--166, 1976.
+
+\bibitem[Cuchiero et~al.(2020)Cuchiero, Khosrawi, and
+  Teichmann]{cuchiero2020gan}
+C.~Cuchiero, W.~Khosrawi, and J.~Teichmann.
+\newblock A generative adversarial network approach to calibration of local
+  stochastic volatility models.
+\newblock \emph{Risks}, 8\penalty0 (4):\penalty0 101, 2020.
+\newblock \doi{10.3390/risks8040101}.
+
+\bibitem[Cui et~al.(2023)Cui, Li, Zhang, and Zhang]{cui2023learning}
+Y.~Cui, L.~Li, G.~Zhang, and W.~Zhang.
+\newblock Learning pricing maps for financial derivatives with deep operator
+  networks.
+\newblock \emph{Available at SSRN 4670716}, 2023.
+
+\bibitem[Cybenko(1989)]{cybenko1989approximation}
+G.~Cybenko.
+\newblock Approximation by superpositions of a sigmoidal function.
+\newblock \emph{Mathematics of Control, Signals and Systems}, 2\penalty0
+  (4):\penalty0 303--314, 1989.
+
+\bibitem[De~Spiegeleer et~al.(2018)De~Spiegeleer, Madan, Reyners, and
+  Schoutens]{despiegeleer2018machine}
+J.~De~Spiegeleer, D.~B. Madan, S.~Reyners, and W.~Schoutens.
+\newblock Machine learning for quantitative finance: fast derivative pricing,
+  hedging and fitting.
+\newblock \emph{Quantitative Finance}, 18\penalty0 (10):\penalty0 1635--1643,
+  2018.
+\newblock \doi{10.1080/14697688.2018.1495335}.
+
+\bibitem[Deelstra et~al.(2024)Deelstra, Grzelak, and
+  Wolf]{deelstra2024accelerated}
+G.~Deelstra, L.~A. Grzelak, and F.~L. Wolf.
+\newblock Accelerated computations of sensitivities for xva.
+\newblock \emph{International Journal of Computer Mathematics}, 101\penalty0
+  (8):\penalty0 842--864, 2024.
+
+\bibitem[Dhandapani and Jain(2024)]{dhandapani2024optimizing}
+V.~L. Dhandapani and S.~Jain.
+\newblock Optimizing neural networks for {Bermudan} option pricing: Convergence
+  acceleration, future exposure evaluation and interpolation in counterparty
+  credit risk.
+\newblock \emph{arXiv preprint}, 2024.
+\newblock \doi{10.48550/arxiv.2402.15936}.
+
+\bibitem[Diebold and Li(2006)]{diebold2006forecasting}
+F.~X. Diebold and C.~Li.
+\newblock Forecasting the term structure of government bond yields.
+\newblock \emph{Journal of Econometrics}, 130\penalty0 (2):\penalty0 337--364,
+  2006.
+\newblock \doi{10.1016/j.jeconom.2005.03.005}.
+
+\bibitem[Duffy and Germani(2013)]{duffy2013c}
+D.~J. Duffy and A.~Germani.
+\newblock \emph{C\# for Financial Markets}, volume 405.
+\newblock John Wiley \& Sons, 2013.
+
+\bibitem[Elbr{\"a}chter et~al.(2021)Elbr{\"a}chter, Grohs, Jentzen, and
+  Schwab]{elbrachter2021dnn}
+D.~Elbr{\"a}chter, P.~Grohs, A.~Jentzen, and C.~Schwab.
+\newblock {DNN} expression rate analysis of high-dimensional {PDEs}:
+  Application to option pricing.
+\newblock \emph{Constructive Approximation}, 55:\penalty0 3--71, 2021.
+\newblock \doi{10.1007/s00365-021-09541-6}.
+
+\bibitem[Frod{\'e} and Sambergs(2022)]{frode2022neural}
+I.~Frod{\'e} and V.~Sambergs.
+\newblock Neural networks for credit risk and xva in a front office pricing
+  environment.
+\newblock \emph{Master’s Theses in Mathematical Sciences}, 2022.
+
+\bibitem[Glorot et~al.(2011)Glorot, Bordes, and Bengio]{glorot2011deep}
+X.~Glorot, A.~Bordes, and Y.~Bengio.
+\newblock Deep sparse rectifier neural networks.
+\newblock In \emph{Proceedings of the Fourteenth International Conference on
+  Artificial Intelligence and Statistics}, pages 315--323. JMLR Workshop and
+  Conference Proceedings, 2011.
+
+\bibitem[Gnoatto et~al.(2022)Gnoatto, Picarelli, and
+  Reisinger]{gnoatto2022deep}
+A.~Gnoatto, A.~Picarelli, and C.~Reisinger.
+\newblock Deep xva solver -- a neural network based counterparty credit risk
+  management framework, 2022.
+
+\bibitem[Goodfellow et~al.(2016{\natexlab{a}})Goodfellow, Bengio, and
+  Courville]{Goodfellow-et-al-2016}
+I.~Goodfellow, Y.~Bengio, and A.~Courville.
+\newblock \emph{Deep Learning}.
+\newblock MIT Press, 2016{\natexlab{a}}.
+\newblock \url{http://www.deeplearningbook.org}.
+
+\bibitem[Goodfellow et~al.(2016{\natexlab{b}})Goodfellow, Bengio, and
+  Courville]{goodfellow2016deep}
+I.~Goodfellow, Y.~Bengio, and A.~Courville.
+\newblock \emph{Deep Learning}.
+\newblock MIT Press, Cambridge, Massachusetts, 2016{\natexlab{b}}.
+
+\bibitem[Goudenège et~al.(2025)Goudenège, Molent, and
+  Zanette]{goudenege2025xva}
+L.~Goudenège, A.~Molent, and A.~Zanette.
+\newblock Computing {XVA} for {American} basket derivatives by machine learning
+  techniques.
+\newblock \emph{Computational Management Science}, 2025.
+\newblock \doi{10.1007/s10287-025-00540-7}.
+
+\bibitem[Green(2016)]{Green_2016}
+A.~Green.
+\newblock \emph{XVA: Credit, funding and Capital Valuation adjustments}.
+\newblock Wiley, 2016.
+
+\bibitem[Gregory(2015)]{Gregory_2015}
+J.~Gregory.
+\newblock \emph{The XVA Challenge: Counterparty credit risk, funding,
+  collateral, and capital}.
+\newblock Wiley, 2015.
+
+\bibitem[Gupta and Subrahmanyam(2005)]{gupta2005pricing}
+A.~Gupta and M.~G. Subrahmanyam.
+\newblock Pricing and hedging interest rate options: Evidence from cap--floor
+  markets.
+\newblock \emph{Journal of Banking \& Finance}, 29\penalty0 (3):\penalty0
+  701--733, 2005.
+
+\bibitem[G{\"u}rkaynak et~al.(2007)G{\"u}rkaynak, Sack, and
+  Wright]{gurkaynak2007}
+R.~S. G{\"u}rkaynak, B.~Sack, and J.~H. Wright.
+\newblock The {U.S.} {T}reasury yield curve: 1961 to the present.
+\newblock \emph{Journal of Monetary Economics}, 54\penalty0 (8):\penalty0
+  2291--2304, 2007.
+\newblock \doi{10.1016/j.jmoneco.2007.06.029}.
+
+\bibitem[Hagan and West(2008)]{hagan2008methods}
+P.~S. Hagan and G.~West.
+\newblock Methods for constructing a yield curve.
+\newblock \emph{Wilmott Magazine, May}, pages 70--81, 2008.
+
+\bibitem[Han et~al.(2018)Han, Jentzen, and E]{han2018solving}
+J.~Han, A.~Jentzen, and W.~E.
+\newblock Solving high-dimensional partial differential equations using deep
+  learning.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 115\penalty0
+  (34):\penalty0 8505--8510, 2018.
+
+\bibitem[Harrison and Kreps(1979)]{harrison1979martingales}
+J.~M. Harrison and D.~M. Kreps.
+\newblock Martingales and arbitrage in multiperiod securities markets.
+\newblock \emph{Journal of Economic Theory}, 20\penalty0 (3):\penalty0
+  381--408, 1979.
+\newblock ISSN 0022-0531.
+\newblock \doi{10.1016/0022-0531(79900437)}.
+\newblock URL
+  \url{https://www.sciencedirect.com/science/article/pii/0022053179900437}.
+
+\bibitem[Harrison and Pliska(1981)]{harrison1981martingales}
+J.~M. Harrison and S.~R. Pliska.
+\newblock Martingales and stochastic integrals in the theory of continuous
+  trading.
+\newblock \emph{Stochastic Processes and their Applications}, 11\penalty0
+  (3):\penalty0 215--260, 1981.
+
+\bibitem[Hastie et~al.(2009)Hastie, Tibshirani, and
+  Friedman]{hastie2009elements}
+T.~Hastie, R.~Tibshirani, and J.~Friedman.
+\newblock \emph{The Elements of Statistical Learning}.
+\newblock Springer, New York, 2 edition, 2009.
+
+\bibitem[Hirsa and Neftci(2013)]{hirsa2013introduction}
+A.~Hirsa and S.~N. Neftci.
+\newblock \emph{An introduction to the mathematics of financial derivatives}.
+\newblock Academic press, 2013.
+
+\bibitem[Hochreiter and Schmidhuber(1997)]{hochreiter1997long}
+S.~Hochreiter and J.~Schmidhuber.
+\newblock Long short-term memory.
+\newblock \emph{Neural Computation}, 9\penalty0 (8):\penalty0 1735--1780, 1997.
+
+\bibitem[Hornik(1991)]{hornik1991approximation}
+K.~Hornik.
+\newblock Approximation capabilities of multilayer feedforward networks.
+\newblock \emph{Neural Networks}, 4\penalty0 (2):\penalty0 251--257, 1991.
+
+\bibitem[Hornik et~al.(1989)Hornik, Stinchcombe, and
+  White]{hornik1989multilayer}
+K.~Hornik, M.~Stinchcombe, and H.~White.
+\newblock Multilayer feedforward networks are universal approximators.
+\newblock \emph{Neural Networks}, 2\penalty0 (5):\penalty0 359--366, 1989.
+
+\bibitem[Horvath et~al.(2021)Horvath, Muguruza, and
+  Tomas]{horvath2020deeplearning}
+B.~Horvath, A.~Muguruza, and M.~Tomas.
+\newblock Deep learning volatility: a deep neural network perspective on
+  pricing and calibration in (rough) volatility models.
+\newblock \emph{Quantitative Finance}, 21\penalty0 (1):\penalty0 11--27, 2021.
+\newblock \doi{10.1080/14697688.2020.1817974}.
+
+\bibitem[Huge and Savine(2020)]{huge2020differential}
+B.~Huge and A.~Savine.
+\newblock Differential machine learning.
+\newblock \emph{arXiv preprint arXiv:2005.02347}, 2020.
+
+\bibitem[Hull(2018)]{Hull_2018}
+J.~Hull.
+\newblock \emph{Risk management and Financial Institutions}.
+\newblock Wiley, 2018.
+
+\bibitem[Hull(2022)]{hull2022options}
+J.~C. Hull.
+\newblock \emph{Options, Futures, and Other Derivatives}.
+\newblock Pearson, Upper Saddle River, NJ, 11th edition, 2022.
+\newblock ISBN 978-0136939979.
+
+\bibitem[Hutchinson et~al.(1994)Hutchinson, Lo, and
+  Poggio]{hutchinson1994nonparametric}
+J.~M. Hutchinson, A.~W. Lo, and T.~Poggio.
+\newblock A nonparametric approach to pricing and hedging derivative securities
+  via learning networks.
+\newblock \emph{The journal of Finance}, 49\penalty0 (3):\penalty0 851--889,
+  1994.
+
+\bibitem[Hutzenthaler et~al.(2020)Hutzenthaler, Jentzen, and von
+  Wurstemberger]{hutzenthaler2020overcoming}
+M.~Hutzenthaler, A.~Jentzen, and P.~von Wurstemberger.
+\newblock Overcoming the curse of dimensionality in the approximative pricing
+  of financial derivatives with default risks.
+\newblock \emph{Electronic Journal of Probability}, 25:\penalty0 1--73, 2020.
+\newblock \doi{10.1214/20-ejp423}.
+
+\bibitem[Kingma and Ba(2015)]{kingma2015adam}
+D.~P. Kingma and J.~Ba.
+\newblock Adam: {A} method for stochastic optimization.
+\newblock In \emph{Proceedings of the Third International Conference on
+  Learning Representations}, 2015.
+
+\bibitem[{KPMG in Ireland}()]{KPMG2025DerivValuation}
+{KPMG in Ireland}.
+\newblock Navigating the complexities of derivative valuation.
+\newblock URL
+  \url{https://kpmg.com/ie/en/insights/asset-management/navigating-the-complexities-of-derivative-valuation.html}.
+\newblock Asset Management – Our Insights.
+
+\bibitem[Kwok(2008)]{kwok2008mathematical}
+Y.-K. Kwok.
+\newblock \emph{Mathematical models of financial derivatives}.
+\newblock Springer, 2008.
+
+\bibitem[Lee et~al.(2026)Lee, Huh, and Jeong]{lee2026deeponet}
+S.~Lee, J.~Huh, and S.~Jeong.
+\newblock Deeponet-based surrogate modeling for bond option pricing.
+\newblock \emph{AIMS Mathematics}, 11\penalty0 (3):\penalty0 5853, 2026.
+
+\bibitem[Menegon and Carapelli(2023)]{menegon2023real}
+A.~Menegon and A.~Carapelli.
+\newblock Real-time exposures and xvas: a neural network approach.
+\newblock 2023.
+
+\bibitem[Mrad and Iassamen(2025)]{mrad2025differential}
+M.~Mrad and N.~Iassamen.
+\newblock Differential deep learning and physics-informed neural networks for
+  fast derivative pricing.
+\newblock 2025.
+
+\bibitem[Nisha et~al.(2024)Nisha, Puri, Rajput, and
+  Bhardwaj]{nisha2024foundations}
+N.~Nisha, N.~Puri, N.~Rajput, and N.~Bhardwaj.
+\newblock Foundations and trends in option pricing models: a 45 years global
+  examination based on bibliometric analysis.
+\newblock \emph{Qualitative Research in Financial Markets}, 2024.
+\newblock \doi{10.1108/qrfm-05-2022-0092}.
+
+\bibitem[Oosterlee and Grzelak(2019)]{oosterlee2019mathematical}
+C.~W. Oosterlee and L.~A. Grzelak.
+\newblock \emph{Mathematical modeling and computation in finance: with
+  exercises and Python and MATLAB computer codes}.
+\newblock World Scientific, 2019.
+
+\bibitem[Ruf and Wang(2020)]{ruf2020neural}
+J.~Ruf and W.~Wang.
+\newblock Neural networks for option pricing and hedging: a literature review.
+\newblock \emph{Journal of Computational Finance}, 24\penalty0 (1):\penalty0
+  1--46, 2020.
+
+\bibitem[Rumelhart et~al.(1986)Rumelhart, Hinton, and
+  Williams]{rumelhart1986learning}
+D.~E. Rumelhart, G.~E. Hinton, and R.~J. Williams.
+\newblock Learning representations by back-propagating errors.
+\newblock \emph{Nature}, 323\penalty0 (6088):\penalty0 533--536, 1986.
+
+\bibitem[Shreve et~al.(2004)]{shreve2004stochastic}
+S.~E. Shreve et~al.
+\newblock \emph{Stochastic calculus for finance II: Continuous-time models},
+  volume~11.
+\newblock Springer, 2004.
+
+\bibitem[Svensson(1994)]{svensson1994estimating}
+L.~E.~O. Svensson.
+\newblock Estimating and interpreting forward interest rates: {Sweden}
+  1992--1994.
+\newblock Working Paper 4871, National Bureau of Economic Research, 1994.
+
+\bibitem[Tsuchiya(2019)]{Tsuchiya_2019}
+O.~Tsuchiya.
+\newblock \emph{A practical approach to XVA: The evolution of derivatives
+  valuation after the financial crisis}.
+\newblock World Scientific, 2019.
+
+\bibitem[Vanhala(2023)]{vanhala2023dataxva}
+T.~Vanhala.
+\newblock Data-driven calculation of {xVA} exposure amounts for an interest
+  rate swap portfolio.
+\newblock Master's thesis, Aalto University, 2023.
+\newblock URL \url{https://aaltodoc.aalto.fi/handle/123456789/120932}.
+
+\bibitem[Wang et~al.(2021)Wang, Wang, and Perdikaris]{wang2021learning}
+S.~Wang, H.~Wang, and P.~Perdikaris.
+\newblock Learning the solution operator of parametric partial differential
+  equations with physics-informed deeponets.
+\newblock \emph{Science advances}, 7\penalty0 (40):\penalty0 eabi8605, 2021.
+
+\bibitem[Weinan(2020)]{weinan2020machine}
+E.~Weinan.
+\newblock Machine learning and computational mathematics.
+\newblock \emph{arXiv preprint arXiv:2009.14596}, 2020.
+
+\bibitem[Yu et~al.(2023)Yu, Ganesan, and Hientzsch]{yu2023backward}
+Y.~Yu, N.~Ganesan, and B.~Hientzsch.
+\newblock Backward deep {BSDE} methods and applications to nonlinear problems.
+\newblock \emph{Risks}, 11\penalty0 (3):\penalty0 61, 2023.
+\newblock \doi{10.3390/risks11030061}.
+
+\bibitem[Zhou and Abramov(2019)]{zhou2019practical}
+X.~Zhou and V.~Abramov.
+\newblock A practical guide to interest rate curve building validations
+  (w/excel replica of bloomberg libor@ github).
+\newblock \emph{Available at SSRN 3329563}, 2019.
+
+\bibitem[Zhu et~al.(2019)Zhu, Chan, and Bright]{zhu2019applying}
+S.~Zhu, J.~Chan, and D.~Bright.
+\newblock Applying machine learning for troubleshooting credit exposure and xva
+  profiles.
+\newblock \emph{Available at SSRN 3404863}, 2019.
+
+\bibitem[Zhu and Pykhtin(2007)]{zhu2007guide}
+S.~H. Zhu and M.~Pykhtin.
+\newblock A guide to modeling counterparty credit risk.
+\newblock \emph{GARP Risk Review, July/August}, 2007.
+
+\end{thebibliography}

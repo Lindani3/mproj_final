@@ -1,0 +1,55 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: abbrvnat.bst
+A level-1 auxiliary file: IntroductionAndBackground.aux
+A level-1 auxiliary file: TheoraticalFoundations.aux
+A level-1 auxiliary file: methodology.aux
+Database file #1: mybibliography.bib
+Warning--entry type for "KPMG2025DerivValuation" isn't style-file defined
+--line 965 of file mybibliography.bib
+Warning--empty year in KPMG2025DerivValuation
+Warning--empty journal in menegon2023real
+Warning--empty journal in mrad2025differential
+You've used 79 entries,
+            2773 wiz_defined-function locations,
+            1043 strings with 18539 characters,
+and the built_in function-call counts, 33741 in all, are:
+= -- 2990
+> -- 1891
+< -- 58
++ -- 646
+- -- 564
+* -- 2664
+:= -- 5291
+add.period$ -- 265
+call.type$ -- 79
+change.case$ -- 407
+chr.to.int$ -- 76
+cite$ -- 161
+duplicate$ -- 1611
+empty$ -- 2802
+format.name$ -- 700
+if$ -- 7018
+int.to.chr$ -- 4
+int.to.str$ -- 1
+missing$ -- 91
+newline$ -- 430
+num.names$ -- 316
+pop$ -- 829
+preamble$ -- 1
+purify$ -- 344
+quote$ -- 0
+skip$ -- 1206
+stack$ -- 0
+substring$ -- 1014
+swap$ -- 125
+text.length$ -- 11
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 779
+warning$ -- 3
+while$ -- 307
+width$ -- 0
+write$ -- 1057
+(There were 4 warnings)

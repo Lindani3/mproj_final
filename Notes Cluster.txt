@@ -1,0 +1,18 @@
+Hi.
+
+Here are your HPC login credentials ...
+
+Name: Lindani Hlophe
+SSH Login Node: 146.141.21.100
+Username: lhlophe
+Default Password: THaeYeEW   
+
+Your account will be fully active with permission to queue jobs within
+two working days of receiving this message.
+
+Always read the message displayed when you log in - it always contains
+important information.
+
+Support queries related to this account must be sent to
+support@wits-mss.supportsystem.com, using the subject line "TWK HPC
+Query".

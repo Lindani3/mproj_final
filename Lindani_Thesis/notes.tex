@@ -1,0 +1,1609 @@
+\section{Notes}
+
+\section{Implementation 1a—Approximating semi-analytical solution}\label{sec:model1a}
+    In this section, we will detail the implementation of training a surrogate model to learn the exposure profiles of an interest rate swap. We then detail the implementation of deep learning methods that can be used to learn these exposure profiles and motivate their application. \\
+
+    \noindent
+    First, we note that computing the exposure of a derivative product is not always available in closed form. As \cite{Gregory_2015} explains, at its core, the problem of computing exposures is fundamentally an option pricing problem,  
+    \begin{equation}
+        \text{Exposure} = \text{max(value,0)}
+    \end{equation}
+    The expression above captures the loss we would incur if the contract had positive value at the time of default. This payoff structure can be likened to holding a short option position. Conversely, when the contract value is negative, we are effectively long an option on our own default. However, it cannot be treated as such because of the complexity of the underlying products and the components that drive xVA calculations. This can be illustrated by considering a vanilla interest rate swap, which can be represented linearly as a portfolio of consecutive forward rate agreements (FRAs), as shown in \ref{eq:swp_linear_fras}. The exposure at time $t$ is defined as the positive part of the swap value,
+    \begin{equation}
+        \text{Exposure} = \max(V^{Swp}(t),0)
+    \end{equation}
+    Although the price of an interest rate swap is linear and admits a closed-form expression, the exposure defined above introduces a non-linearity due to the presence of the maximum operator.
+    Drawing upon the frameworks of \cite{sorensen1994pricing} and \cite{jamshidian1989exact}, we derive a semi-analytical solution for computing the exposure profile of an interest rate swap.  \\
+    
+    \begin{lemma}\label{lem:swapEE_equivalent_swaption}
+    
+    Let $V^{Swp}(t)$ be the value at time $t$ of an interest rate swap under the risk–neutral measure $\mathbb{Q}$\\
+    \[
+    EE(t_0,t) = \mathbb{E}^{\mathbb{Q}}\!\left[\max\!\left(V^{Swp}(t),0\right)\,\Big|\,\mathcal{F}_{t_0}\right]
+    \]
+     \noindent
+     Let $M(t)$ denote the money–market account and $P(t,T)$ the zero–coupon bond price. Then, the expected exposure at time $t$ for an interest rate swap can be expressed in terms of European-style swaptions as follows,
+
+    \begin{align*}
+        EE(t_0,t)  &= \mathbb{E}^{\mathbb{Q}} \Bigg[ \frac{M(t_0)}{M(t)} \max \Big( V^{SWP}(t),0 \Big) \Big| \mathcal{F}_{t_0} \Bigg],\\
+        &= \mathbb{E}^{\mathbb{Q}} \Bigg[ \frac{M(t_0)}{M(t)} \max \Big(N \cdot \sum_{k=i+1}^{m} \tau_{k} P(t,T_k) (\ell(t,T_{k-1},T_k) - K),0 \Big) \Big| \mathcal{F}_{t_0} \Bigg],\\
+        &= \mathbb{E}^{\mathbb{Q}} \Big[ \frac{1}{M(t)} V^{Swpt}(t,K) \Big | \mathcal{F}_{t_0}\Big]
+    \end{align*}
+   where $V^{\text{Swpt}}(t, K)$ represents the time $t$ value of a European swaption with strike rate $K$ and exercise date $t$.
+    
+    \end{lemma}
+
+    \noindent
+    Following the techniques of \cite{jamshidian1989exact}, we derive the price of the swaption under the Hull-White model. To do this, we will have to find the value of the swaption presented in lemma\ref{lem:swapEE_equivalent_swaption} in terms of zero-coupon bond prices under the $T_i$-forward measure $\mathbb{Q}^{T_i}$.
+
+    \begin{equation}
+    V^{\text{Swpt}}(t_0) = N \cdot P(t_0, T_i) \times \mathbb{E}^{T_i} \left[ \max \left( \sum_{k=i+1}^m \tau_k P(T_i, T_k) \left( \ell(T_i; T_{k-1}, T_k) - K \right), 0 \right) \middle| \mathcal{F}(t_0) \right]
+    \end{equation}
+
+    \noindent
+    The term inside the maximum function represents the present value of the swap's future cash flows at time $T_i$, this summation simplifies to an expression involving only zero-coupon bond prices, yielding,
+    \begin{align}
+    \sum_{k=i+1}^m \tau_k P(T_i, T_k) \left( \ell_k(T_i) - K \right) &= 1 - P(T_i, T_m) - K \sum_{k=i+1}^m \tau_k P(T_i, T_k),\\
+    &= 1 - \sum_{k=i+1}^m c_k P(T_i, T_k)
+    \end{align}
+
+    \noindent
+    Where $c_k$ are the coupons \( c_k = K \tau_k \) for \( k = i+1, \ldots, m-1 \) and \( c_m = 1 + K \tau_m \). The value of the swaption in terms of ZCB $P(T_i,T_k)$ can thus be expressed as 
+    
+    \begin{equation}
+        V^{\text{Swpt}}(t_0) = N \cdot P(t_0, T_i) \mathbb{E}^{T_i} \left[ \max \left( 1 - \sum_{k=i+1}^m c_k P(T_i, T_k), 0 \right) \middle| \mathcal{F}(t_0) \right]
+    \end{equation}
+
+    \noindent
+    As the ZCB \( P(T_i, T_k) \) in the case of an affine short-rate process \( r(t) \) can be expressed as
+    \begin{equation}
+        P(T_i, T_k) = \exp\left(\bar{A}_r(\bar{\tau}_k) + \bar{B}_r(\bar{\tau}_k)r(T_i)\right),
+    \end{equation}
+
+    \noindent
+    with \( \bar{\tau}_k := T_k - T_i \), the (scaled) pricing equation is written as 
+    \begin{equation}
+        V^{\text{Swpt}}(t_0) = P(t_0, T_i) \cdot N \cdot \mathbb{E}^{T_i} \left[ \max\left(1 - \sum_{k=i+1}^m c_k e^{\bar{A}_r(\bar{\tau}_k) + \bar{B}_r(\bar{\tau}_k)r(T_i)}, 0\right) \middle| \mathcal{F}(t_0) \right]
+    \end{equation}
+
+    \noindent
+    An expression of this form was solved in \cite{jamshidian1989exact}, who showed that under an affine one-factor model, the option on a portfolio of zero-coupon bonds can be decomposed into a portfolio of options on the individual bonds. This decomposition proceeds by first finding the critical short rate \( r^*(T_i) \) that satisfies \( \sum_{k=i+1}^m c_k P(T_i, T_k; r^*(T_i)) = 1 \), after which the swaption value reduces to a sum of bond options exercised when the corresponding bond price falls below a strike. Following \cite{oosterlee2019mathematical}, since each function \( f_k(r) \) is strictly increasing in the interest rate \( r \), their sum \( \sum_{k} f_k(r) \) is also strictly increasing. This monotonicity guarantees the existence of a unique critical interest rate \( r^* \) that satisfies
+    
+    \begin{equation}
+        \sum_{k} f_k(r^*) = K
+    \end{equation}   
+
+    \noindent
+    where \( K \) represents the strike level. The value of \( r^* \) can be found numerically using standard root-finding techniques, such as the Newton-Raphson method.
+
+    \noindent
+    Using this critical rate, the payoff function can be reformulated so that the maximum term becomes
+    \begin{gather}
+        \max\left( \sum_{k} f_k(r^*) - \sum_{k} f_k(r), 0 \right) = \max\left( \sum_{k} \left( f_k(r^*) - f_k(r) \right), 0 \right)
+    \end{gather}
+
+    \noindent
+     because, the sum is increasing monotonically, the condition \( \sum_{k} f_k(r^*) > \sum_{k} f_k(r) \) holds precisely when \( r < r^* \). Consequently, the payoff simplifies to
+   \begin{equation}
+       \sum_{k} \left( f_k(r^*) - f_k(r) \right) \cdot \mathbb{1}_{\{ r < r^* \}}
+   \end{equation} 
+   
+    \noindent
+    where \( \mathbb{1}_{\{ r < r^* \}} \) is an indicator function that takes the value one when the interest rate is below the critical threshold and zero otherwise. \\
+    \begin{equation}
+        V^{\text{Swpt}}(t_0) = P(t_0, T_i) \cdot N \cdot \sum_{k=i+1}^m c_k \mathbb{E}^{T_i} \left[ \max \left( \hat{K}_k - e^{\bar{A}_r(\bar{\tau}_k) + \bar{B}_r(\bar{\tau}_k) r(T_i)}, 0 \right) \right]
+    \end{equation}
+
+    \noindent
+    with \(\hat{K}_k := \exp \left( \bar{A}_r(\bar{\tau}_k) + \bar{B}_r(\bar{\tau}_k) r^* \right)\), where the parameter \(r^*\) is chosen such that
+    \begin{equation}
+        \sum_{k=i+1}^m c_k \exp \left( \bar{A}_r(\bar{\tau}_k) + \bar{B}_r(\bar{\tau}_k) r^* \right) = 1
+    \end{equation}
+    
+    \noindent
+    To finally obtain the pricing formula for the swaption, note that each term in the summation now takes the form of an expectation involving a single zero-coupon bond price. Each element of this sum represents a European put option on a zero-coupon bond, with strike price \(\hat{K}_k\) and maturity \(T_i\). That is,
+    \begin{equation}
+        V_p^{\text{ZCB}}(t_0, T_i) = P(t_0, T_i) \cdot \mathbb{E}^{T_i} \left[ \max \left( \hat{K}_k - e^{\bar{A}_r(\bar{\tau}_k) + \bar{B}_r(\bar{\tau}_k) r(T_i)}, 0 \right) \right]
+    \end{equation}
+
+    \noindent
+    with \(\bar{\tau}_k = T_k - T_i\). The quantity inside the expectation now includes the \(\hat{K}_k\) against the discounted bond price at time \(T_i\), which is expressed in terms of the short rate \(r(T_i)\).\\
+
+    \noindent
+    Using the results from \cite{jamshidian1989exact}, we have now transformed a single complex option on a portfolio of bonds into a portfolio of simpler options on individual bonds. Under the Hull-White model, pricing European options on zero-coupon bonds admits a closed-form solution. This is because the affine structure of the model ensures that zero-coupon bond prices are log-normally distributed under the forward measure.\\   
+
+    \noindent
+    A European swaption thus simplifies to a weighted sum of these individual bond option prices
+    \begin{equation}
+        V^{\text{Swpt}}(t_0) = N \cdot \sum_{k=i+1}^m c_k V_p^{\text{ZCB}}(t_0, T_k)
+    \end{equation}
+    
+    \noindent
+     In the literature, two related exposure measures appear, the undiscounted expected exposure, $EE(t_0,t) = \mathbb{E}^{\mathbb{Q}}[\max(V(t),0)|\mathcal{F}_{t_0}]$, represents the expected replacement cost at future time $t$. For xVAs calculations, however, the discounted expected exposure, $DEE(t_0,t) = \mathbb{E}^{\mathbb{Q}}[D(0,t)\max(V(t),0)|\mathcal{F}_{t_0}]$, is required as it represents the present value of future exposure.\\
+
+    \noindent
+    A key observation from Lemma~\ref{lem:swapEE_equivalent_swaption} is that $DEE(T_i)$ equals the price of a European payer swaption with expiry $T_i$. This equivalence provides a convenient analytical benchmark for our surrogate modeling approach. The undiscounted exposure is then recovered by dividing by the discount factor: $EE(T_i) = DEE(T_i)/P(0,T_i)$.\\
+    
+    \noindent
+    Step 1: Coupon bond representation. A payer swaption with expiry $T_e$ on a swap with payments $\{c_k\}$ at dates $\{T_k\}$ has payoff:
+    
+    \begin{equation}
+        \max\!\left(1 - \sum_k c_k \, P(T_e, T_k),\; 0\right)
+    \end{equation}
+
+    \noindent
+    where $c_k = \delta K$ for $k < n$ and $c_n = \delta K + 1$ final coupon plus principal. The exercise condition is equivalent to the coupon bond $\sum_k c_k \, P(T_e, T_k) < 1$. \\
+
+    \noindent
+    Step 2: Critical rate $r^*$. Because each $P(T_e, T_k) = A(T_e,T_k) \exp\!\bigl(-B(T_e,T_k) r\bigr)$ is strictly decreasing in $r$, the coupon bond value is also strictly decreasing in $r$. There exists a unique $r^*$ such that:
+
+    \begin{equation}
+        \sum_k c_k \, A(T_e,T_k) \exp\!\bigl(-B(T_e,T_k) r^*\bigr) = 1
+    \end{equation}
+    This is solved numerically. The exercise region is $\{r(T_e) > r^*\}$ for a payer swaption.
+
+    \noindent
+    Step 3: Decomposition into ZCB options. Define strike prices $X_k = A(T_e,T_k) \exp\!\bigl(-B(T_e,T_k) r^*\bigr)$. Then:
+    \begin{equation}
+        \text{Swaption}_{\text{payer}} = \sum_k c_k \; \text{Put}(0; T_e, T_k, X_k)
+    \end{equation}
+
+    \noindent
+    where $\text{Put}(0; T_e, T_k, X_k)$ is the price of a European put option on the zero-coupon bond $P(T_e, T_k)$ with strike $X_k$ and expiry $T_e$. This decomposition is exact because at $r = r^*$, each bond is at its individual strike, and the monotonicity ensures all bonds are simultaneously above/below their strikes.\\
+
+    \noindent
+    Step 4: ZCB option pricing. Each put option has the closed-form solution \citep{hull1994numerical}:
+    \begin{equation}
+        \text{Put}(0; T_e, T, X) = X \, P_{mkt}(0,T_e) \, \Phi(-d_2) - P_{mkt}(0,T) \, \Phi(-d_1)
+    \end{equation}
+    where
+    \begin{equation}
+            d_1 = \frac{\ln\!\left(\displaystyle\frac{P^M(0,T)}{X\,P^M(0,T_e)}\right)}{\sigma_P} + \frac{\sigma_P}{2}, \qquad
+    d_2 = d_1 - \sigma_P,
+    \end{equation}
+    \begin{equation}
+        \sigma_P = \sigma \; B(T_e,T) \; \sqrt{\frac{1 - e^{-2a T_e}}{2a}}
+    \end{equation}
+    Here $\sigma_P$ is the volatility of the log zero‑coupon bond price at the option expiry, and $\Phi$ is the standard normal CDF.\\
+
+    \noindent
+    \textbf{Implementation:} \texttt{SwaptionPricer.price()} implements all four steps in a vectorised manner. The critical rate $r^*$ is found via Newton's method with analytical Jacobian (quadratic convergence), falling back to Brent's method.
+    
+    \subsection*{Complete Pipeline}
+    
+    The full computation for one (date, $a$, $\sigma$) sample proceeds as:
+    \begin{enumerate}
+        \item \textbf{Input:} Market ZCB curve $P^M(0,T_k)$ for 40 quarterly tenors, HW parameters $(a,\sigma)$.
+        \item \textbf{Curve fitting:} Fit a cubic spline to $\ln P^M$, extract $f(0,t)$ and $r(0)$ $\rightarrow$ \texttt{HullWhiteAnalytical}.
+        \item \textbf{Par rate:} Compute $K^* = \bigl(P^M(0,0) - P^M(0,10)\bigr) / A(0)$ $\rightarrow$ \texttt{SwapPricer.par\_rate()}.
+        \item \textbf{For each monitoring date $T_i \in \{0.25, 0.50, \dots, 10.00\}$:}
+            \begin{itemize}
+                \item Price payer swaption$(0; T_i, 10, K^*)$ via Jamshidian $\rightarrow$ $\text{DEE}(T_i)$.
+                \item $\text{UEE}(T_i) = \text{DEE}(T_i) / P^M(0,T_i)$.
+            \end{itemize}
+        \item \textbf{Output:} 40‑dimensional UEE vector.
+    \end{enumerate}
+    This produces 40 UEE values per sample, yielding the target labels for the surrogate model.
+
+    
+
+\newpage
+\section{Implementation 1b—Approximating Exposure Profiles from Hull-White model}\label{sec:model1b}
+    While the analytical approach (Section~\ref{sec:model1a}) is computationally efficient, it is limited to European-style exercise and specific model assumptions. Monte Carlo simulation provides a general-purpose alternative that accommodates arbitrary payoff structures and path-dependent features. This section details the Monte Carlo framework for computing exposure profiles under the Hull-White one-factor model.\\
+      \noindent
+  In the above, we are averaging future mark-to-market values over all continuous paths of price factors. Mathematically, for each market scenario and at each time step, we compute the value of the financial derivative. We approximate the conditional expectation via Monte Carlo simulation, but this creates a nested structure: for every outer scenario at every future date, we require an inner simulation to estimate the conditional expectation. The computational cost of this nested framework is governed by the following quantities:
+ 
+\begin{itemize}
+      \item $N$: the number of outer simulation paths (market scenarios from $t_0$ to $t_M$),
+      \item $M$: the number of future simulation dates $\{t_1, t_2, \dots, t_M\}$ with $t_M = T$,
+      \item $K$: the number of inner paths used at each valuation point $(i, k)$ to estimate the conditional expectation,
+      \item $d$: the dimension of the state vector $X(t)$.
+  \end{itemize}
+
+  \newpage
+  \caption{Estimation of $V(t_k, \{X(t_j)\}_{j=1}^{k})$}                                                               \noindent
+  Algorithm~\ref{alg:valuation} presents the inner Monte Carlo procedure for estimating the value at a single point $(i, k)$.
+
+  \begin{algorithm}
+  \caption{Estimation of $V(t_k, \{X(t_j)\}_{j=1}^{k})$ at a fixed outer scenario $i$ and time step $t_k$}
+  \label{alg:valuation}
+  \begin{algorithmic}[1]
+      \Require Observed path $\{x_j\}_{j=1}^{k}$ up to time $t_k$, risk-neutral dynamics $\mathbb{Q}$, number of inner paths $K$, time grid $\{t_k, t_{k+1}, \ldots, t_M\}$ with $t_M = T$,
+  payoff function $g$ defined by the instrument's contractual terms
+      \Ensure $\hat{V}$ -- a Monte Carlo estimate of $\mathbb{E}^{\mathbb{Q}}\!\Big[ V^{MTM}\!\big(t_k, \{X(t)\}_{t \leq t_k}\big) \;\Big|\; \{X(t_j) = x_j\}_{j=1}^{k} \Big]$
+      \State Initialise accumulator $S \leftarrow 0$
+      \For{$i = 1, 2, \ldots, K$}
+          \State Set $X^{(i)}(t_k) \leftarrow x_k$
+          \For{$m = k, k+1, \ldots, M-1$}
+              \State Simulate $X^{(i)}(t_{m+1})$ from $X^{(i)}(t_m)$ under $\mathbb{Q}$
+          \EndFor
+          \State Compute $\text{CF}^{(i)} \leftarrow g\!\Big(\{x_j\}_{j=1}^{k},\; \{X^{(i)}(t_m)\}_{m=k+1}^{M}\Big)$
+          \State $S \leftarrow S + \text{CF}^{(i)}$
+      \EndFor
+      \State $\hat{V} \leftarrow S \,/\, K$
+      \State \Return $\hat{V}$
+  \end{algorithmic}
+  \end{algorithm}
+  \noindent
+  For a fixed outer scenario $i$ and a fixed time step $t_k$, the algorithm simulates $K$ inner paths, each advancing the $d$-dimensional state vector from $t_k$ to $t_M$ in $M - k$ steps.
+  The work at a single valuation point is therefore:
+
+  \begin{equation}
+  \text{Work}(i, k) = K \cdot (M - k) \cdot d.
+  \end{equation}
+
+  \noindent
+  To construct the full valuation grid -- the value at every simulation date on every outer scenario -- we sum over all $N$ outer paths and all $M$ time steps:
+
+  \begin{equation}
+  \text{Total work} = \sum_{i=1}^{N} \sum_{k=1}^{M} K \cdot (M - k) \cdot d = N \cdot K \cdot d \sum_{k=1}^{M} (M - k).
+  \end{equation}
+
+  \noindent
+  Evaluating the sum over $k$:
+
+  \begin{equation}
+  \sum_{k=1}^{M} (M - k) = \sum_{j=0}^{M-1} j = \frac{M(M-1)}{2}.
+  \end{equation}
+
+  \noindent
+  Thus the total computational work is:
+
+  \begin{equation}
+  \text{Total work} = N \cdot K \cdot d \cdot \frac{M(M-1)}{2}.
+  \end{equation}
+
+  \noindent
+  For large $M$, this grows as:
+
+  \begin{equation}
+  \text{Total work} = \mathcal{O}\!\left(N \, K \, M^{2} \, d\right).
+  \end{equation}
+
+  \noindent
+     The cost scales quadratically with the number of simulation dates $M$, since at early time steps (when $k$ is small) each inner path must travel almost the entire remaining time grid to reach maturity. In contrast, the cost scales only linearly with the number of outer scenarios $N$, the number of inner paths $K$, and the dimension of the state vector $d$. This quadratic dependence on $M$ is precisely what we mean by the nested simulation curse: the inner loop must be executed $N \times M$ times, and each execution itself costs $\mathcal{O}(M \cdot d)$ per path, which together give us the $M^2$ factor. It is this cost structure that makes brute-force nested Monte Carlo impractical for routine risk management, and it is what drives the search for approximation methods that can bypass the inner simulation altogether.\\
+
+
+    \noindent
+    We first present the solution of the Hull-White model. To solve this linear SDE \ref{eq:hull_white}, we employ an integrating factor. Define the process
+
+    \begin{equation}
+        y(t) = e^{a t} r(t). 
+    \end{equation}
+
+    \noindent
+    Applying Itô's lemma to \(y(t)\) gives
+
+    \begin{equation}
+        dy(t) = a e^{a t} r(t) dt + e^{a t} dr(t) = a y(t) dt + e^{a t} dr(t).
+    \end{equation}
+
+    \noindent
+    Substituting the SDE for \(dr(t)\):
+    \begin{equation}
+        dy(t) = a y(t)dt + e^{a t}[a (\theta(t) - r(t))dt + \eta dW_r(t)],
+    \end{equation}
+    We thus obtain the system of equations
+    
+    \[
+    \begin{cases}
+    y(t) = e^{a t}r(t), \\
+    dy(t) = a\theta(t)e^{a t}dt + \eta e^{a t}dW_r(t).
+    \end{cases}
+    \]
+    The right-hand side of the \( y(t) \)-dynamics does not depend on state vector \( y(t) \), and we can therefore determine the solution of \( y(t) \) by integrating both sides of the SDE,
+    
+    \begin{equation}
+        \int_0^t dy(z) = a \int_0^t \theta(z)e^{a z}dz + \eta \int_0^t e^{a z}dW_r(z),
+    \end{equation}
+
+    \noindent
+    which gives us,
+    
+    \begin{equation}
+        y(t) = y(0) + a \int_0^t \theta(z)e^{a z}dz + \eta \int_0^t e^{a z}dW_r(z)
+    \end{equation}
+
+    \noindent
+    By the definition of \( y(t) \), with \( y(0) = r_0 \), the solution for the process \( r(t) \) is given by 
+
+    \begin{equation}
+        r(t) = e^{-a t}r_0 + a \int_0^t \theta(z)e^{-a(t-z)}dz + \eta \int_0^t e^{-a(t-z)}dW_r(z)
+    \end{equation}
+
+    \begin{equation}
+        \mathbb{E}[r(t)|\mathcal{F}(t_0)] = r_0 e^{-a t} + a \int_0^t \theta(z) e^{-a(t-z)} dz
+    \end{equation}
+
+    \noindent 
+    For simulation purposes, we need to generate paths of the short rate \(r(t)\) at discrete dates. Under the Hull‑White model (Equation~\ref{eq:hull_white}), the short rate is a Gaussian process, and its transition density is known in closed form.  This allows us to simulate exactly without time‑stepping bias. \\
+
+    
+    \noindent
+    Let the simulation dates be \(t_0 < t_1 < \dots < t_M\) with constant step \(\Delta = t_{k+1} - t_k\).  Conditional on the value at time \(t_k\), the short rate at \(t_{k+1}\) is normally distributed:
+
+    \begin{equation}
+        r(t_{k+1}) \mid r(t_k) \;\sim\; \mathcal{N}\!\left( r(t_k)e^{-a\Delta} + \Theta(t_k,\Delta),\; \Sigma^2(\Delta) \right)
+    \end{equation}
+        
+    where
+    \begin{equation}
+            \Theta(t_k,\Delta) = \int_{t_k}^{t_{k+1}} e^{-a(t_{k+1}-u)}\theta(u)\,du, \qquad \Sigma^2(\Delta) = \frac{\sigma^2}{2a}\bigl(1-e^{-2a\Delta}\bigr)
+    \end{equation}
+    \noindent
+    The drift term \(\Theta(t_k,\Delta)\) can be expressed in terms of the initial instantaneous forward curve \(f(0,t)\) (which is calibrated from market data).  Using the relation between \(\theta(\cdot)\) and the forward curve, one obtains the explicit formula
+
+    \begin{equation}
+            \Theta(t_k,\Delta) = f(0,t_{k+1}) - f(0,t_k)e^{-a\Delta} + \frac{\sigma^2}{2a^2}\bigl(1-e^{-a\Delta}\bigr)\bigl(1-e^{-a(2t_k+\Delta)}\bigr)
+    \end{equation}
+    
+    \noindent
+    The conditional variance is independent of the current time and is given by
+    \begin{equation}
+        \Sigma(\Delta) = \sigma\sqrt{\frac{1-e^{-2a\Delta}}{2a}}
+    \end{equation}
+
+    \noindent
+    Therefore, for each path and each time step we generate an independent standard normal draw \(Z_{k} \sim \mathcal{N}(0,1)\) and update the short rate via
+    \begin{equation}
+         r(t_{k+1}) = r(t_k)e^{-a\Delta} + \Theta(t_k,\Delta) + \Sigma(\Delta)\,Z_{k}
+    \end{equation}
+    
+    \noindent
+    This exact discretization, which is efficient and unbiased.  In practice, the forward curve \(f(0,t)\) is interpolated from observed market rates (e.g., OIS or LIBOR curves) and the parameters \(a\) and \(\sigma\) are calibrated to swaption prices.  The simulation then proceeds forward in time, producing the outer scenarios required for exposure computation.\\
+
+    \noindent
+    Once we have generated the outer scenarios and valued the interest rate swap on each path at every monitoring date, we proceed to compute the exposure metrics. For a given path \(m\) and time step \(t_k\), the \textbf{positive exposure} is defined as:
+    \begin{equation}
+        E^m(t_k) = \max(V^m(t_k), 0)
+        \label{eq:positive_exposure}
+    \end{equation}
+    where \(V^m(t_k)\) denotes the swap value on path \(m\) at time \(t_k\). \\
+    
+    \noindent
+    Averaging these positive exposures across all Monte Carlo paths yields the Undiscounted Expected Exposure (UEE) at time \(t_k\):
+    \begin{equation}
+        \text{UEE}(t_k) = \mathbb{E}^\mathbb{Q}[\max(V(t_k), 0)]
+        \label{eq:uee}
+    \end{equation}
+    which is estimated by the Monte Carlo average
+    \begin{equation}
+        \widehat{\text{UEE}}(t_k) = \frac{1}{M} \sum_{m=1}^{M} E^m(t_k)
+        \label{eq:uee_estimate}
+    \end{equation}
+
+    \noindent
+    where \(M\) is the total number of simulated paths.\\
+
+    \noindent
+    If we incorporate discounting, we obtain the Discounted Expected Exposure (DEE)
+    \begin{equation}
+        \text{DEE}(t_k) = \mathbb{E}^\mathbb{Q}[D(0, t_k) \cdot \max(V(t_k), 0)]
+        \label{eq:dee}
+    \end{equation}
+    estimated by:
+    \begin{equation}
+        \widehat{\text{DEE}}(t_k) = \frac{1}{M} \sum_{m=1}^{M} D^m(0, t_k) \cdot E^m(t_k)
+        \label{eq:dee_estimate}
+    \end{equation}
+    where \(D^m(0, t_k)\) is the discount factor along path \(m\) from time \(0\) to \(t_k\). \\
+
+    \noindent
+    Finally, a key risk metric is the Expected Positive Exposure (EPE), which represents the time-averaged expected exposure over a given period. Following \cite{Gregory_2015}, the EPE is defined as:
+    \begin{equation}
+        \text{EPE} = \frac{1}{T_{\text{max}} - T_{\text{min}}} \int_{T_{\text{min}}}^{T_{\text{max}}} \text{UEE}(t) \, dt
+        \label{eq:epe}
+    \end{equation}
+    In practice, this integral is approximated using the trapezoidal rule over the discrete monitoring dates.
+    
+    \newpage 
+    
+\section{Implementation 2 - Exposure for Bermudan Swaption via Longstaff–Schwartz Monte Carlo}
+    \noindent
+    The Monte Carlo simulation approach detailed in Section~\ref{sec:model1b} provides a more general-purpose framework capable of handling arbitrary payoff structures and path-dependent features. This section details the Monte Carlo framework for computing exposure profiles for a Bermudan swaption under the Hull-White one-factor model, a problem with a significantly more complex structure than the vanilla swap considered previously. \\
+
+    \noindent
+    The Bermudan swaption introduces two layers of complexity. First, the pricing problem itself is non-linear due to the optimal stopping feature, the holder can choose when to exercise, making the contract's value dependent on the entire future evolution of interest rates. This early exercise optionality destroys the linearity that underpins closed-form solutions and necessitates advanced numerical methods such as dynamic programming or regression-based Monte Carlo. Second, when we move from pricing to exposure computation, this non-linearity is compounded by the nested expectation structure inherent in credit risk metrics. \\
+
+    \noindent
+    For each future simulation date and for each market scenario, we must determine not only the swap value but also the optimal exercise policy conditional on that specific state, a task that typically requires solving a separate optimal stopping problem at every node. Thus, computing expected exposure for a Bermudan swaption demands a nested simulation within which an optimal stopping problem must be solved at the inner level. This double layer of complexity renders brute-force approaches computationally prohibitive and motivates the need for efficient surrogate methods. In the following, we describe the implementation of a Longstaff–Schwartz Monte Carlo framework adapted for exposure calculations, highlighting the algorithmic choices and computational challenges that arise. \\
+
+
+\section{Introduction and Problem Formulation}
+     Calculating exposure profiles is central to xVA calculations. As outlined in \cite{zhu2007guide}, a generic approach to modelling counterparty credit risk can be detailed as follows:
+    
+    \begin{itemize}
+        \item Scenario generation: this involves simulating the underlying market risk factors on a predetermined set of future dates.
+        \item Instrument valuation: on each of the predetermined future dates, and for each realised observation of the underlying market risk factors, we calculate the value of the instrument.
+        \item Portfolio aggregation: for each simulation date and each realisation of the underlying market risk factors, the counterparty-level exposure is calculated.
+    \end{itemize}
+
+    \noindent
+    The price of a financial derivatives contract depends on the realisation of a set of risk factors, such as foreign exchange (FX) rates, interest rates, credit spreads, etc. Given a fixed set of future simulation dates $\{t_k\}_{k=1}^{N}$, we are interested in generating potential market scenarios for each underlying risk factor at these dates. Specifically we model the short-interest rates dynamics under measure $\mathbb{Q}$. A popular choice of modelling short-interest rates is the Hull-White one-factor model given by 
+ 
+    \begin{equation}\label{eq:hull_white}
+        dr(t) = \alpha(\theta(t) -  r(t))dt + \sigma dW^\mathbb{Q}(t)
+    \end{equation}
+    \noindent 
+    A layer of complexity is added when considering regulatory standards, which require a more sophisticated approach, a two-factor Hull-White model (G2++) calibrated on real market data \cite{silotto2021everything}. The dynamics of the instantaneous-short-rate process under the risk neutral measure $\mathbb{Q}$ is given by \\
+    \begin{equation}
+        r(t) = x(t) + y(t) + \varphi (t), \quad r(0) = r_0
+    \end{equation}
+    \noindent
+    where the process $\{ x(t) : t \ge 0\}$ $\{ y(t) : t \ge 0\}$ satisfy 
+    \begin{align}
+        dx(t) &= -ax(t)dt + \sigma dW_1(t), \quad x(0) = 0, \\
+        dy(t) &= -by(t)dt + \eta dW_2(t), \quad y(0) =0  
+    \end{align}
+    There are two approaches to generating the possible future values of the price factors. The first captures the path dependence of market factors through time, meaning each simulation describes a possible trajectory from time $t=0$ to the maturity date $t=T$. The second approach simulates directly from $t=0$ to the relevant simulation date $t$—\cite{zhu2007guide} refers to this as a direct jump to the simulation date. \\
+
+    \noindent
+    The model parameters in the Hull-White model ($a$, $\sigma$) and the G2++ model ($a$, $b$, $\sigma$, $\eta$, $\rho$) require calibration to market data. As noted in \cite{Tsuchiya_2019}, calibrating the volatilities is perhaps the most difficult part of derivative pricing, including xVA modelling.\\
+
+    \noindent
+  The second step in calculating credit exposure is to value the instrument at different future times using the simulated scenarios \cite{zhu2007guide}. Instruments with path-dependent features, such as American, Bermudan, and asset-settled derivatives, pose additional challenges for valuation. Conditional on knowing the full history of market risk factors up to a given future time, we compute the mark-to-market value $V^{MTM}(t)$ at simulation date $t_k$ on a given market scenario $\{X(t)\}_{t \leq t_k}$ which determines the value of the derivative contract:  
+    \begin{equation}\label{eq:PricingEnq}
+    V(t_k,\{X(t_j)\}_{j=1}^{k}) = \mathbb{E}^{\mathbb{Q}} \Big[ V^{MTM}(t_k,{X(t)}{t \leq t_k}) \Big |{ X(t_j) = x_j }_{j=1}^{k} \Big]
+    \end{equation}
+    
+
+    \noindent
+    In the final step at each simulation date, we compute certain statistics of the exposure distribution to build these profiles. The expected exposure profile, for instance, is simply the average exposure at each future date. A potential future exposure profile-commonly used to monitor exposure against credit limits-takes a high percentile, say the 95th, of the exposure distribution at each date.\\
+
+    \noindent
+    The credit exposure at a future time $t$ is defined as the positive part of the mark-to-market value of the derivative or portfolio
+
+    \begin{equation}
+        E(t) = \max\left(V^{MTM}(t), 0\right)
+    \end{equation}
+    \noindent
+    Expected Exposure (EE) is the conditional expectation of the discounted exposure computed under the risk-neutral measure $\mathbb{Q}$
+
+    \begin{equation}\label{eq:ee}
+        EE^{*}(t) = \mathbb{E}^{\mathbb{Q}} \Big [ \frac{B_0}{B(t)} E(t) \Big]
+    \end{equation}
+    
+    \noindent
+    The CVA formula, once we have obtained the expected exposure $EE^{*}$, is then given by 
+    \begin{equation}
+        CVA = LGD \int_{0}^{T} EE^{*}dPS(t)
+    \end{equation}
+
+    \noindent
+    In the CVA formula above, the most computationally demanding component is the calculation of the exposure profile, $EE(t)$. This section presents the deep learning approach we employ to alleviate this computational burden, moving beyond traditional Monte Carlo simulation. We use a hierarchy of implementations, each designed to address specific sources of complexity. The implementations can be categorized as follows:
+
+    \begin{itemize}
+    \item \textbf{Implementation 1a:} A data-driven surrogate model trained to replicate the analytical closed-form solution for computing the exposure profiles for a vanilla interest rate swap, establishing a baseline for accuracy and speed.
+    
+    \item \textbf{Implementation 1b:} We construct a neural network surrogate for the nested Monte Carlo valuation under the Hull-White model. The network is trained to approximate the conditional expectation $\mathbb{E}^\mathbb{Q}[\cdot | \mathscr{F}(t)]$ directly from simulated market states, effectively eliminating the need for inner simulations.\\
+    
+    \item \textbf{Implementation 2:} A deep learning-based approach to compute continuation values and exposure profiles for Bermudan swaptions, replacing the computationally expensive LSM regressions.
+     \\
+     \end{itemize}
+
+    \noindent
+    
+    
+    The computation of exposure profiles is a central task in counterparty credit risk management. For the purpose of this analysis, the contract under consideration is a 10-year interest rate swap where we assume a long position, paying a fixed rate quarterly and receiving a floating rate quarterly.\\
+
+    \noindent
+    To generate the exposure profiles for this swap, we explore three distinct approaches. The first two are data-driven in the sense that they rely on market-observable inputs, such as yield curves and volatility surfaces, to compute exposures. The first is an analytical approach, which leverages closed-form solutions for swaption pricing via Jamshidian decomposition to compute the exposure profile directly. The second is a simulation-based approach using the Hull-White model, which uses Monte Carlo methods to generate numerous interest rate paths and computes the exposure by averaging the swap values across those paths.\\
+
+    \noindent
+    The third approach is machine-learning-based. Here, we reframe the problem by considering a Bermudan swaption and solve for the exposure using polynomial regression techniques within an American Monte Carlo framework. Specifically, we employ wavelet basis functions to approximate the continuation value, allowing for a more flexible and accurate representation of the exposure profile while aiming to reduce computational cost. \\
+
+    \noindent
+    As outlined by \cite{zhu2007guide}, computing counterparty-level credit exposure involves three key steps. First, future market scenarios must be generated for the underlying risk factors at a predefined set of simulation dates. Second, the interest rate swap must be valued at each simulation date under the realized market conditions. Third, for each simulation date and each risk factor scenario, the counterparty-level exposure is aggregated and computed based on these valuations, which results in a nested expectation problem.\\
+
+    \noindent
+    The fundamental quantity required to model counterparty credit exposure at a time $t$ is the distribution of the contract value $V(t)$ computed at a future time $t>0$ as seen from today \cite{cesari2009modelling}. If we consider the contract to be an interest rate swap, under $V(t)$ is given by
+    \begin{equation}
+    V(t) = N \cdot M(t_0) \sum_{k=i+1}^{m} \tau_k \mathbb{E} ^\mathbb{Q} \Bigg[ \frac{1}{M(T_k)} \left( L (T_{k-1},T_k) - K\right) \Big| \mathscr{F}(t) \Bigg]
+    \label{eq:swap_value}
+    \end{equation}
+    
+    \noindent
+    Let $\{t_k\}_{k=1}^{N}$ be a fixed set of simulation dates. The initial step in the exposure computation framework is the generation of a set of potential future market scenarios $\omega$ across these dates. In the present study, interest rates are assumed to constitute the sole source of uncertainty. Accordingly, all market scenarios are driven exclusively by the evolution of the underlying interest rate process. For this purpose, we adopt the Hull-White one-factor model as our interest rate model. The Hull-White model describes the dynamics of the short rate $r(t)$ under the risk-neutral measure $\mathbb{Q}$ as
+    
+    \begin{equation}\label{eq:hull_white}
+        dr(t) = \alpha(\theta(t) -  r(t))dt + \sigma dW^\mathbb{Q}(t)
+    \end{equation}
+    \noindent
+    where $\alpha$ is the mean reversion rate, $\sigma$ is the volatility parameter, $W^\mathbb{Q}(t)$ is a standard Brownian motion under the risk-neutral measure, and $\theta(t)$ is a time-dependent function chosen to fit the initial term structure of interest rates. The parameters $\alpha$ and $\sigma$ are calibrated to market prices of interest rate derivatives such as swaptions. While this calibration step can be computationally intensive for complex products, it is performed once before simulation. \\
+    
+    \noindent 
+    From the swap values obtained across scenarios, we compute the positive exposure at each future date as
+    \begin{equation}
+    E(t) = \max(V(t), 0)
+    \label{eq:positive_exposure}
+    \end{equation}
+    
+    \noindent
+    The Expected Exposure (EE) is then defined as the risk-neutral expectation of the discounted positive exposure
+    
+    \begin{equation}
+    EE(t_0,t) = \mathbb{E} ^\mathbb{Q} \left[ \frac{M(t_0)}{M(t)} E(t) \Big| \mathscr{F}(t_0) \right]
+    \label{eq:ee}
+    \end{equation}
+    \noindent
+    To evaluate the Expected Positive Exposure (EPE), financial institutions must employ a nested Monte Carlo architecture \cite{Gregory_2015}. We now outline this two-layer simulation structure and identify the specific market complexities that render the problem computationally expensive.\\
+
+    \noindent
+    The first layer involves simulating the state of the economy forward in time using the Hull-White model in Equation \ref{eq:hull_white}. The outer simulation generates $N_{\text{paths}}$ trajectories of the short rate $r(t)$, and potentially the hazard rate $\lambda(t)$ if wrong-way risk is modelled across the $M$ discrete time nodes ${t_1, t_2, \dots, t_M}$. At every single node $t_k$ on every path $\omega \in {1, \dots, N_{\text{paths}}}$, the interest rate swap must be revalued. This requires evaluating Equation \ref{eq:swap_value} conditional on the market state $r(t_k, \omega)$. For a portfolio of 10,000 trades, 100 simulation steps, and 12,000 scenarios, this amounts to $1.2 \times10 ^{10}$ full revaluations \cite{Green_2016}. \\
+
+    \noindent
+    While a vanilla interest rate swap admits a closed-form solution under the affine Hull-White framework, this tractability collapses under realistic market constraints. The following complexities destroy the possibility of semi-analytic solutions and necessitate nested simulation. If the counterparty's default intensity $\lambda(t)$ is correlated with the interest rate $r(t)$, for instance, via a CIR++ model coupled with G2++ interest rate model, the independence assumption embedded in standard exposure calculations fails \cite{brigo2013counterparty}. The expectation can no longer be factored into separate market and credit components, forcing a joint simulation of credit and market factors. In this setting, analytic pricing of the option on the net present value becomes impossible \cite{brigo2013counterparty}. \\
+
+    \noindent 
+    Real OTC derivatives are traded under a Credit Support Annex (CSA). The exposure is not simply $\max(V(t), 0)$, but rather the uncollateralized exposure over the Margin Period of Risk (MPR). The collateralized exposure at default becomes,
+
+    \begin{equation}
+        E_{\text{c}}(t) = \max(V(t) - C(t), 0)
+        \label{eq:collateral}
+    \end{equation}    
+
+    \noindent
+    where the collateral $C(t)$ depends on the contract's value at previous margin call dates $V(t - \delta)$ \cite{Gregory_2015}. This path-dependency completely destroys the Markovian property required for fast semi-analytic evaluation \cite{zhou2019practical}. The exposure at time $t$ now depends on the entire history of the contract, not merely the current state. \\
+
+    \noindent
+    For early exercise features, if the interest rate swap is cancellable or structured as a Bermudan swaption, valuing $V(t_k)$ requires solving an optimal stopping problem at every node. This is typically achieved via the Longstaff-Schwartz Least Squares Monte Carlo (LSMC) method \cite{Green_2016}. Running an LSMC regression, itself a simulation-based technique, inside an outer Monte Carlo path leads to an exponential explosion in computational time. Each outer scenario would require its own inner regression, making the problem computationally intractable for portfolios of realistic size. \\
+
+    \noindent 
+    To systematically investigate the use of deep learning and machine learning in alleviating the computational challenges linked to Monte Carlo simulation, we develop a hierarchy of implementations, each designed to address specific sources of complexity:
+
+    \begin{itemize}
+    \item \textbf{Implementation 1a:} A data-driven surrogate model trained to replicate the analytical closed-form solution for computing the exposure profiles for a vanilla interest rate swap, establishing a baseline for accuracy and speed.
+    
+    \item \textbf{Implementation 1b:} We construct a neural network surrogate for the nested Monte Carlo valuation under the Hull-White model. The network is trained to approximate the conditional expectation $\mathbb{E}^\mathbb{Q}[\cdot | \mathscr{F}(t)]$ directly from simulated market states, effectively eliminating the need for inner simulations.
+    
+    \item \textbf{Implementation 2:} A deep learning-based approach to compute continuation values and exposure profiles for Bermudan swaptions, replacing the computationally expensive LSMC regressions.
+    
+    %\item \textbf{Implementation 3:} A machine learning framework for exposure calculations under wrong-way risk, where the model learns the joint dynamics of interest rates and default intensities.
+    
+    %\item \textbf{Implementation 4:} A surrogate modeling approach for collateralized exposures, capturing the path-dependent history of margin calls without full nested simulation.
+    \end{itemize}
+
+Basic terms that has to be understood indept 
+    \begin{itemize}
+        \item Financial asset categories:  
+        \item Contingent claim:
+        \item Payoff function:
+        \item Derivative assets:
+        \item A trading strategy: 
+        \item Probability spaces, probability measures, filtrations etc. 
+        \item Replicating strategy: 
+        \item Portfolio immunization: 
+        \item Perfect market hypothesis 
+    \end{itemize}
+\noindent
+    The following notes are statements from literature on the fundamental price of an asset. 
+    
+    \begin{itemize}
+        \item  The fundamental value of an asset has to be distinguished from its price which can be observed from the market.
+        \item  The price that can be observed can be interpreted as the market price. The market price is determined by demand and supply of the asset and can therefore deviate from the fundamental value, but in the long run will converge to the fundamental value. 
+        \item From the efficient market hypothesis a close relation was drawn between the fundamental value and the price of an asset. This suggested that the price should always equal the fundamental value. 
+        \item An asset is defined as a right on future cash flows, thus it is correct to assume that value of an asset depends on these cash flows.  
+        \item A market in which prices always fully reflect available information is called efficient. With this definition in an efficient market price should always equal the fundamental value that is determined according to the information available. Sufficiently, but not necessary, conditions for market to be efficient are: 
+            \begin{itemize}
+                \item no transaction costs for trading assets
+                \item all information is available at no costs for all market participants. 
+                \item all market participants agree in the implications information has on current and future prices and dividends.
+            \end{itemize}
+        \item A market can either be classified as weak, semistrong, and strong efficiency. The difference in these markets are dependent on the set of information that has to be incorporated into prices. 
+        \item This leads to the introduction of the information set $\Omega_t$ to incorporated in pricing
+        \item A price fully reflets information if, based on this information, no market participants can generate expected profits higher than the equilibrium profits. 
+        \begin{equation}
+            E[x_{t+1} | \Omega_t] = 0
+        \end{equation}
+        \item The above will introduce the principles of Martingales when models information in continuous-time random variables. 
+        \item The Present Value model. The fundamental value depends on the expected future dividends and rates of return. The expected dividends are discounted with the expected rates of return. 
+        \item Notes for CAPM.... Main interesting point is that leading to the Arbitrage Pricing Theory. Problem with the CAPM is the aggregation of all risks into a single risk factor, market risk. This aggregation is useful for optimal or at least well-diversified
+        portfolios.  
+        \item 
+    \end{itemize}
+   
+
+\chapter{Background and Motivation}
+    In this section, we give a background to the general valuation framework for financial derivatives under xVA adjustments, we provide background on counterparty credit risk, and explain different credit risk metrics that will be considered in this writing. Additionally, we highlight the computing the computational challenges of these metrics and give a backround on how deep learning approaches can be leveraged to address these computational shortcomings. \\
+    
+\noindent
+    The group of x-Value Adjustments (xVAs) represents a framework for derivative pricing that extends beyond classical risk-neutral valuation. These adjustments account for counterparty credit risk, funding costs, collateral requirements, and capital constraints. Following \cite{Green_2016} formulation, the adjusted price of a derivative can be expressed as the sum of its risk-neutral value and a correction term encompassing all relevant xVA components. This relationship is formally expressed as,
+    
+    \begin{equation}\label{eq:xva-general}
+        \hat{V} = V + U
+    \end{equation}
+
+
+% Include proper referencing Replication methodology common from Burgard & Kjaer. The replication approach is highlighted in green's framework. 
+    where $\hat{V}$ denotes the risky total value including xVA adjustments, $V$ represents the classical risk-neutral price of the derivative, and $U$ is the sum of the valuation adjustments (CVA, DVA, FVA, etc.). Various formulations exist for pricing financial derivatives when accounting for counterparty risk. There are two schools of thought on how counterparty credit risk should be incorporated in the price of a derivative: we have the replication-based methodology extending the Black-Scholes partial differential equation framework and an expectation-based approach. This research adopts the expectation-based approach introduced in \cite{grzelak2021sparse}, \cite{Tsuchiya_2019}. This is because this approach provides a more direct foundation for the requirements of the Monte Carlo simulation and aligns naturally with the computational structure of xVA calculations commonly used in practice. In our background, we use the derivation of the CVA term i.e., U = CVA, to show the necessity of exposure profiles. In the following chapters, we will extend the derivation and incorporate other adjustment terms. \\
+
+\noindent 
+    \cite{Green_2016} illustrates the computation of unilateral CVA calculation using a portfolio of trades between two counterparties on an unsecured basis. In this setting, the market maker (the institution performing the CVA calculation) is considered to be the non-defaulting party, only the counterparty is assumed to have default likelihood. They then construct two portfolios: the default-free portfolio, where the portfolio $V$ is assumed to generate a series of cash flows, $C(t,T)$, between time $t$ and maturity $T$ in the absence of default. They then construct a risky portolio reflecting the true economic value of the derivative contract, including counterparty credit risk (CVA). The risky portfolio is constructed by considering the likelihood of default at time $\tau$, the risky value of the portfolio $\hat{V}_t$ is thus given by, \\
+    
+    \begin{equation}\label{eq:riskyvalue}
+        \hat{V}_t = V(t < \tau) + V_{Recovery}(t \geq \tau)
+    \end{equation}  
+
+    Where $V(t < \tau)$ is the value of the portfolio, assuming no default has occurred before time $t$, and $V_{Recovery}(t \geq\tau)$ represents the value recovered or realized when default occurs at or before time $\tau$.
+\noindent
+    \begin{align*}
+        \hat{V}_t &= \mathbb{E}\left[C(t, \tau)\mathbb{1}_{\tau<T} + C(t, T)\mathbb{1}_{\tau\geq T} + \mathbb{E}[(R(V_\tau)^+ + (V_\tau)^{-})1_{\tau<T}|\mathscr{F}_t]|\mathscr{F}_t\right] \\
+         &= \mathbb{E}[C(t, \tau)\mathbb{1}_{\tau<T}|\mathscr{F}_t] + \mathbb{E}[C(t, T)\mathbb{1}_{\tau\geq T}|\mathscr{F}_t] + \mathbb{E}[(R(V_\tau)^+ + (V_\tau)^{-})\mathbb{1}_{\tau<T}|\mathscr{F}_t] \\
+         &= \mathbb{E}[C(t, \tau)\mathbb{1}_{\tau<T}|\mathscr{F}_t] + \mathbb{E}[C(t, T)\mathbb{1}_{\tau\geq T}|\mathscr{F}_t] - \mathbb{E}[(1 - R)(V_\tau)^+1_{\tau<T}|\mathscr{F}_t] + \mathbb{E}[\hat{\Pi}_\tau \mathbb{1}_{\tau<T}|\mathscr{F}_t] \\
+         &= \mathbb{E}[C(t, T)|\mathscr{F}_t] - \mathbb{E}[(1 - R)(V_\tau)^+1_{\tau<T}|\mathscr{F}_t] \\
+         &= V_t - \mathbb{E}[(1 - R)(V_\tau)^+1_{\tau<T}|\mathscr{F}_t]
+    \end{align*}
+    
+
+    where $R$ is the recovery rate expressed as a percentage representing the portion of the exposure that can be recovered in the event of a counterparty default. The second term is the CVA; in this case, it is subtracted from the risk-free value because it represents the expected loss from the market maker's point of view. This loss is calculated as the risk-neutral expectation of the product of the loss given default, $(1-R)$, and the \textit{positive exposure}, $(V_\tau)^+ = \text{max}(V_{\tau},0)$. This logic can also be extended to bilateral CVA model, which incorporates the default of both parties, leading to the derivation of the Debit Valuation (DVA) term.\\
+    % This section should I further explain other forms of xVAs mathematically
+    
+\noindent
+     The positive exposure described above is one among several exposure profiles used in counterparty risk measurement. It characterizes the temporal evolution of potential credit exposure to a counterparty, thereby providing a dynamic representation of the possible losses that could materialize throughout the lifetime of the derivative contract. These functions, unlike $VaR$ are time dependent, and they capture the behavior of exposure metrics across multiple future dates, transforming static risk measures into comprehensive temporal distributions important for accurate xVA valuation. In this writing, we will mainly discuss the following exposure metrics that are formally defined under the risk-neutral measure $\mathbb{Q}$ as follows:
+    
+    \begin{definition}
+    \label{def:exposure}
+    \textbf{Exposure E(t)} at time t for a position with final maturity T and whose prevent value at time t $\leq$ T is denoted by V(t,T) is defined as:
+     \[
+    \text{E}(t) = \text{max}[V(t, T),0],
+    \]
+    \end{definition}
+    
+    \begin{definition}
+    \label{def:expected_exposure}
+    \textbf{Expected Exposure EE(t)}, also known as \textbf{Expected Positive Exposure} (EPE), is the expected exposure of party A to their counterparty B at some future date with the expectation or average taken over all possible future outcomes on the date of interest. Formally, it is defined as:
+    \[
+    \text{EE}(t) = \mathbb{E}^{\mathbb{Q}} \left[ E(t) \, \middle| \, \mathscr{F}_0 \right] = \mathbb{E}^{\mathbb{Q}} \left[ \text{max}[V(t, T),0]\, \middle| \, \mathscr{F}_0 \right].
+    \]
+    \end{definition}
+    
+    \begin{definition}
+    \label{def:pfe}
+    \textbf{Potential Future Exposure} (PFE) at a future time \( t \) 
+    is the maximum credit exposure calculated at some confidence level  \( \alpha \in (0,1) \) is defined as:
+    \[
+    \text{PFE}_{\alpha}(t) = \inf \left\{ x \in \mathbb{R} : \alpha \in F_{E(t)}(x) \right\}.
+    \]
+    \end{definition}
+\noindent
+    The computation of the above exposure metrics is fundamental to xVA valuation. The prevailing method for estimating these exposures is Monte Carlo simulation, which typically employs between 5,000 and 12,000 simulation paths to balance computational cost and accuracy \cite{frode2022neural}. While Monte Carlo provides flexibility to handle complex portfolios and risk factors, it is computationally intensive \cite{Gregory_2015}. Practitioners face challenges in selecting the appropriate temporal resolution (simulation nodes) for exposure calculations. Many institutions, due to computational constraints, adopt monthly time steps for exposure evaluation. However, regulatory frameworks such as Basel III recommend or require daily exposure measurements to more accurately capture market risk dynamics and comply with capital requirements. \\
+    
+
+\noindent
+    Additionally, the computational burden and accuracy of these exposure profiles strongly depend on the complexity and composition of the derivatives portfolio under consideration\cite{belkotain2018x}.
+    As a risk mitigation strategy, institutions can compute these exposures at the portfolio or netting set level, as opposed to on the individual trade level [\cite{Tsuchiya_2019}]. The netting set level encompasses a grouping of economically related trades or positions, enabling a more precise assessment of overall risk exposure. However, this aggregation results in significant computational challenges due to the large number of Monte Carlo simulation paths needed to accurately capture increased dimensionality and portfolio complexity, which drives up computational cost exponentially \cite{gnoatto2022deep}. \\
+
+\noindent
+    To address the challenge of the computational cost of Monte Carlo simulation, the curse of dimensionality from portfolio aggregation, and the regulatory expectation of daily exposure measures we explore deep learning approach. The application of neural networks is theoretically justified by the universal approximation capabilities and generalization \cite{Goodfellow-et-al-2016}. Our investigation specifically focuses on temporal neural network architectures, including recurrent and temporal convolutional networks, due to their inherent suitability for capturing the sequential dependencies in financial time series data. This approach aims to train neural network models that can approximate exposure profiles with significantly reduced computational burden, enabling more frequent risk reporting, accelerated trade pricing, and enhanced scenario analysis capabilities \cite{frode2022neural}. \\
+
+\noindent
+    % I wish to conclude this section with more specific details into the model. However I think these specifications will be appropriate in the research methodology section. 
+
+       This chapter has established the fundamental mathematical framework for interest rate modeling, tracing the evolution from simple time-value concepts to the sophisticated multi-curve framework required for post-crisis markets. The interconnected concepts of spot rates, forward rates, and their representations through zero-coupon bonds form the foundation upon which stochastic interest rate models are built.
+    
+    The subsequent chapters will extend this framework in several directions:
+    \begin{itemize}
+        \item \textbf{Chapter 4:} Development of stochastic models for interest rate evolution, including short-rate models (Vasicek, Hull-White) and forward-rate models (Heath-Jarrow-Morton)
+        \item \textbf{Chapter 5:} Multi-curve modeling methodologies and basis spread dynamics
+        \item \textbf{Chapter 6:} Applications to derivative pricing, with focus on interest rate swaps, caps/floors, and swaptions
+        \item \textbf{Chapter 7:} Counterparty risk adjustments (CVA/DVA) and funding valuation adjustments (FVA) within the multi-curve framework
+    \end{itemize}
+    
+    The mathematical rigor established here—grounded in no-arbitrage principles and acknowledging the multi-dimensional nature of modern interest rate markets—provides the essential foundation for addressing the complex valuation challenges in contemporary derivatives pricing and risk management.\\
+        
+    \noindent
+     Historically, interest rate modeling relied on the assumption that a single yield curve could describe the market. This framework assumed that a deposit of tenor τ was equivalent to rolling over a series of shorter deposits, implying that basis spreads between tenors were negligible \cite{avsar2015logic}. \\
+    
+    % There are different models for constructing term structure include that 
+    % We need to solidify this relationship here, We need to talk more about the basic 
+    % instrument (numerarair) map this relationship with the instantanous rate r, then map it with the ZCB then finally with discounting.
+    % Why use a ZCB in terms of debt ?
+    \noindent
+    Generally a Term structure is a function that relates a certain financial variable or parameter to its maturity \cite{filipovic2009term}. Examples include term structure of interest rates, zero-coupon bond prices, option implied volatilities and credit spreads to name a few. They are not directly observed from the market, however they require estimation methods that are flexible enough to capture the entire market information \cite{filipovic2009term}. This section primarily examines the term structure of zero-coupon bonds and, from it, we will derives the corresponding term structure of interest rates. Term Structures of interest rates is the relationship between interest rates and their time to maturity. In the context of debt securities, it can be defined as the relationship between the yield-to-maturity on a zero-coupon bond and the bond's maturity. Formally for interests products we will define a term structure mathematically as follows\\
+    
+
+
+    
+    % This should be a section where I start introducing curves 
+    
+
+    
+
+    Central to the simulation of credit exposure profiles is the modeling of interest rates. We always working interest rates derivatives, that is, the cashflows $C(T_i)$ depends only on interest [\cite{yasuoka2018evaluating}]. In this research, interest rates models will be used to exposure calculation and generating scenarios of interest rates. In this section we going to briefly explain the concept  of short-term interest rates. We also explain the modeling of the short-rates that will be important in this study. There are different affine term structure models that one can use. Also there is the Vasicek model, Cox-Integersoll-Ross Model and the Hull-White Models.   . \textit{Go deep into explaining stochastic interest rates}. For the research you will need a proper definition of \textit{short-rate}. We will also the need an understanding of different approaches to shor-rates.  \\
+
+    First, we talk about the HJM Model framework where the dynamics of $f^{r}(t, T)$ are of main interest. The point of departure is the assumption that, for a fixed maturity $T \geq 0$, the instantaneous forward rate $f^{r}(t, T)$, under the real-world measure $\mathbb{P}$, is governed by following dynamics: 
+    \begin{equation}
+        df^{r}(t,T) = \alpha^{\mathbb{P}}(t,T)dt + \eta(t,T)dW^{\mathbb{P}}(t), \quad f^{r}(t, T) = f^{r}_{0,T}  = - \frac{\partial}{\partial T_2} = \text{log} P (0,T)
+    \end{equation}
+    
+    for any time  $t < T$, with corresponding drift term $\alpha^{\mathbb{P}}(t,T)$ and the volatility term 
+    $\eta(t,T)$. This this framework $r(t) \equiv f^{r}(t,t)$. \\ 
+
+    We have to make a consideration, whether we choose to take the risk-neutral measure $\mathbb{P}$ or the real world measure $\mathbb{Q}$. \\
+
+    The Hull-White model is a single factor, no-arbitrage yield curve model in which the short-term interest rate is driven by an extended mean reverting process. 
+
+    \begin{equation}
+        dr(t) = \lambda (\theta (t) - r(t))dt + \eta dW_r(t), \quad r(0) = r_0
+    \end{equation}
+
+    where: 
+    \begin{itemize}
+        \item $\theta(t)$: is a time-dependent drift term, which is used to fit the mathematical bond prices to the yield curve observed in the market. 
+        \item $W_r(t) \equiv Q^{\mathbb{Q}}_r(t)$ is the Brownian motion under measure $\mathbb{Q}$.
+        \item $\eta$ determines the overall level of the volatility. 
+        \item $\lambda$ depends how fast the short rate dampens out. 
+    \end{itemize}
+\section{Products Recap}
+
+A caplet with reset date $T$ and settlement date $T +\delta$
+
+\section{Methodology}
+
+In this, we will discuss the 4 models that will implement this study. 
+
+\begin{itemize}
+    \item First model you want to se the closed formula 
+\end{itemize}
+
+\section{Bermudan Swaption} 
+                  
+  A Bermudan swaption grants the holder the right to enter an interest rate swap at a finite set of exercise dates. This seemingly simple extension from the European case introduces       
+  fundamental mathematical difficulties.
+  \subsection{The European Swaption (The "Easy" Case)}
+
+  For a European swaption with single exercise date $T_1$, the value at time $t$ is:
+    \begin{equation}
+    V(t) = B_t , \mathbb{E}^{\mathbb{Q}}\left[\frac{U_1(X_{T_1})}{B_{T_1}} ,\Big|, \mathcal{F}_t\right]    
+    \end{equation}
+  \noindent
+  where the exercise payoff is:
+  \begin{equation}
+    U_1(x) = N_0 \left(\sum_{k=1}^{N} P(T_1, T_{k+1}, x)\tau_k\right) \max(\delta(S(T_1, \mathcal{T}_1, x) - K), 0)  
+  \end{equation}
+
+  \noindent
+  This is a single conditional expectation that can be computed in closed or semi-closed form under standard short-rate models (Hull-White, G2++). The problem is static: one decision point, one
+  expectation.
+
+\subsection{The Bermudan Extension: An Optimal Stopping Problem}
+
+  The Bermudan swaption with exercise dates $T_1 < T_2 < \cdots < T_N$ transforms the valuation into a stochastic optimal stopping problem. The value function satisfies the dynamic programming recursion:
+  \begin{equation}
+      V(t_m, x) = \begin{cases} 
+                      U_N(x), & t_m = T_N,  \\
+                      \max(C(t_m, x),, U_n(x)), & t_m = T_n,; n < N, \\
+                      C(t_m, x), & T_n < t_m < T_{n+1} 
+                  \end{cases}
+  \end{equation}
+
+  \noindent
+  where the continuation value is:
+  \begin{equation}
+      C(t_m, x) = B_{t_m} ,\mathbb{E}^{\mathbb{Q}}\left[\frac{V(t_{m+1}, X_{t_{m+1}})}{B_{t_{m+1}}} ,\Big|, X_{t_m} = x\right]
+  \end{equation}
+
+   \noindent
+  This is where the complexity explodes. Three distinct mathematical difficulties emerge:
+
+    \begin{itemize}
+        \item Nested Expectations. The continuation value $C(t_m, \cdot)$ depends on $V(t_{m+1}, \cdot)$, which itself depends on $C(t_{m+1}, \cdot)$, and so on. The value function is
+        defined recursively through conditional expectations. There is no closed-form solution -- one cannot decompose the Bermudan value into a sum of European values.
+       \item The Free Boundary. At each exercise date $T_n$, the optimal exercise boundary $x^*(T_n)$ is defined implicitly by 
+       \begin{equation}
+         C(T_n, x^(T_n)) - U_n(x^(T_n)) = 0   
+       \end{equation}
+       \noindent
+       This boundary is not known a priori, it must be determined simultaneously with the value function. The exercise decision at $T_n$ depends on the continuation value, which depends on future exercise decisions at $T_{n+1}, \ldots, T_N$. This is a coupled system that must be solved backward in time.
+       \item Path Dependence of the Exercise Decision. Although the payoff itself is Markovian in the state variable $X_t$, the exercise status is path-dependent. Once exercised at some $T_n$, the option ceases to exist. The value along any scenario $\omega$ depends on the entire sequence of exercise decisions
+       \begin{equation}
+          V(t_m, X_{t_m}(\omega))  
+       \end{equation}
+       depends on whether $U_n(X_{T_n}(\omega)) > C(T_n, X_{T_n}(\omega))$ for all prior  $T_n$ \leq $t_m$. 
+     This means one cannot simply evaluate the value function pointwise -- one must track the exercise history along each path.
+    \end{itemize}
+
+\subsection{Computational Complexity of Pricing Alone}
+    \subsubsection{Monte Carlo Approach (LSM/SGBM)}
+     Since closed-form pricing is unavailable, simulation-based methods approximate $C(t_m, x)$ by regression. In the LSM framework:
+     \begin{equation}
+         C(t_m, x) \approx \sum_{k=1}^{B} \alpha_k(t_m),\phi_k(x)
+     \end{equation}
+  \noindent
+  where the coefficients $\alpha_k$ are obtained by least-squares regression of future discounted cashflows onto basis functions. This requires:
+ \begin{itemize}
+     \item $K_q$ simulated paths of the state variable ${X_{t_m}^{(h)}}_{h=1}^{K_q}$
+     \item $M$ monitoring dates traversed backward in time
+     \item At each step: a regression problem of dimension $B$ over $K_q$ observations
+ \end{itemize}
+  \noindent
+  Computational cost of pricing alone: $\mathcal{O}(M \cdot K_q \cdot B^2)$. This is manageable for a single price. The real challenge begins when we need exposure profiles. The Exposure Problem, A Second Layer of Complexity At any future time $t$, the exposure of the Bermudan swaption is:
+ \begin{equation}
+    E_t(\omega) = \max(0,, v_t(\omega)) 
+ \end{equation}
+ 
+  \noindent
+  where $v_t(\omega)$ is the mark-to-market value of the (possibly still alive) swaption at time $t$ on path $\omega$.
+
+  The key risk measures are, Expected Exposure (EE) under the observed real-world measure $\mathbb{A}$:
+  \begin{equation}
+      \text{EE}(t) = \mathbb{E}^{\mathbb{A}}[E_t] = \int_{\Omega'} E_t(\omega),\mathrm{d}\mathbb{A}(\omega)
+  \end{equation}
+  
+  Potential Future Exposure (PFE), the 99% quantile:
+    \begin{equation}
+        \text{PFE}(t) = \inf{y \mid \mathbb{A}({w: E_t(w) < y}) \geq 99\%}
+    \end{equation}
+  $$$$
+
+  Credit Valuation Adjustment (CVA) under the risk-neutral measure $\mathbb{Q}$:
+ \begin{equation}
+     \text{CVA}_0 = \text{LGD} \int_0^T \text{EE}^*(t),\mathrm{d}\text{PS}(t)
+ \end{equation}
+  \noindent
+  where 
+  \begin{equation}
+      \text{EE}^*(t) = \mathbb{E}^{\mathbb{Q}}\left[\frac{E_t}{B_t}\right]
+  \end{equation}
+  \noindent
+  is the discounted expected exposure. Why Exposure Is Fundamentally Harder Than pricing, Pricing requires a single number: $V(0, X_0)$. Exposure requires the entire matrix:
+
+  \begin{equation}
+      {V(t_m, X_{t_m}(\omega))}_{m=0,\ldots,M}^{\omega \in \Omega'}
+  \end{equation}
+
+  \noindent
+  That is, the value function must be known at every monitoring date on every scenario. This is not a single backward recursion, it is a full space-time evaluation of the option value.
+
+
+
+
+    \noindent
+    The motivation for incorporating deep learning techniques in derivatives pricing stems from several factors. The two implementations described above can be viewed as neural network surrogates\footnote{Explored in detail in the write-up.} A surrogate model is an approximation method that mimics the behavior of a computationally expensive pricing function. Once the deep learning models have been trained on each instrument's market inputs, fair values can be efficiently obtained from the trained surrogate. \\
+
+    \noindent
+    Another area where deep learning is often used is in pricing equations that do not have a closed-form solution. For example in
+
+    section{Introduction}
+    This document presents the deep learning methodologies developed for pricing interest rate derivatives, comprising both implementations completed to date and those proposed for subsequent investigation. The scope is restricted to the pricing problem, given the prevailing market state, the objective is to learn a surrogate pricing function that maps market inputs to the fair value of a derivative contract. Given the prevailing market state at any point in time, the objective is to learn a pricing function that returns the fair value of the financial derivative contract.  \\
+
+    \noindent
+    The structure of this writing is as follows. We first discuss the intuition and mathematical background for each instrument. We then present the deep learning architectures employed to price each instrument and discuss how these architectures are structured, trained, and validated. The implementations are grouped as follows:
+    \begin{itemize}
+        \item Implementation 1a: A vanilla interest rate swap, we train a network to approximate the $R_x$, fair price of an interest rate swap from the closed-form solution of forward rates
+        \item Implementation 1b: A vanilla interest rate swap, we train a network to approximate $R_x$, the fair price of an interest rate swap from simulated forward rates. 
+    \end{itemize}
+
+    \noindent
+    Next, we present the mathematical preliminaries for understanding the above implemntations. 
+ 
+\newpage
+\section{Mathematical Preliminaries}                                           
+    We begin by establishing the mathematical objects that underpin the pricing of interest rate derivatives. The central quantity in the modelling of most interest rate products is the price of a zero-coupon bond, the simplest possible debt instrument. All other interest rate quantities such as spot rates, forward rates, and the short rate can be derived from it. \\             
+
+    \noindent                                                                            
+    We work on a filtered probability space $(\Omega, \mathcal{F}, \{\mathcal{F}_t\}_{t \geq 0}, \mathbb{Q})$, where $\mathbb{Q}$ denotes the risk-neutral measure under which discounted asset prices are martingales \cite{BrigoMercurio2006}. We first introduce the money market account, which represents a locally riskless investment.
+    
+    \begin{definition}[Money-Market Account]
+    The \textit{money market account} $B(t)$ represents the value of a unit of currency invested at the prevailing short-term interest rate and continuously rolled over. It is defined by
+    \begin{equation}\label{eq:mm_account}
+      B(t) = \exp\left(\int_0^t r(s) \, ds\right),
+    \end{equation}
+    where $r(s)$ is the instantaneous short rate at time $s$.
+    \end{definition}
+
+    \noindent
+    In the above, the instantaneous rate $r(t)$ tells us that investing a unit amount at time $0$ yields at time $t$ the value in Equation~\eqref{eq:mm_account}. This rate will be explored later, it is also referred to as the instantaneous spot rate or the short rate.\\
+    
+    \noindent
+    The money market account serves as the fundamental num\'{e}raire in risk-neutral pricing, providing the unit of measurement against which cashflows occurring at different points in time can be compared on a common basis. A unit of currency today and a unit of currency at a future time $T$ are not equivalent; to express a future cashflow in terms of its present value, we normalise by the money market account. The stochastic discount factor is the mechanism that performs this normalisation.
+    
+    \begin{definition}[Stochastic Discount Factor]
+        The stochastic discount factor $D(t,T)$ between two instants of time $t$ and $T$ is the amount at time $t$ that is equal to one unit of currency payable at time $T$, and is given by
+        \begin{equation} \label{eq:df}
+          D(t,T) = \frac{B(t)}{B(T)} = \exp\left( -\int_{t}^{T} r(s) \, ds\right).
+        \end{equation}
+    \end{definition}
+    
+    \noindent
+    In many pricing frameworks, including the Black-Scholes model, the short rate $r(t)$ is treated as a deterministic function of time. Under this assumption, both the money market account in
+    Equation~\eqref{eq:mm_account} and the discount factor in Equation~\eqref{eq:df} are known quantities at any future time \cite{BrigoMercurio2006}. For interest rate derivatives, however, this assumption is inadequate; the primary source of uncertainty is the interest rate itself, which evolves stochastically over time. The most natural instrument through which this uncertainty manifests in the market is the zero-coupon bond, whose price at any time $t$ depends directly on the future path of the short rate.\\
+    
+    \begin{definition}[Zero-Coupon Bond]
+    A \textit{zero-coupon bond} with maturity $T$ is a contract that pays its holder a single unit of currency at time $T$ with certainty. Its price at time $t \leq T$ is denoted $P(t,T)$, with the boundary condition $P(T,T) = 1$.
+        \begin{equation} \label{eq:zcb}
+          P(t,T) = B(t) \, \mathbb{E}^{\mathbb{Q}} \left[ \frac{1}{B(T)} \bigg| \mathcal{F}_t \right]
+        \end{equation}
+    \end{definition}
+    
+    \noindent
+    The function $T \mapsto P(t,T)$ for fixed $t$ encodes all the information the market provides about the time value of money. At the current time $t = 0$, the initial term structure $P(0,T)$ is constructed from the prices of traded instruments such as deposits, forward rate agreements, and interest rate swaps through a bootstrapping procedure \cite{Hull2022, Tuckman2011}. At future times $t > 0$, however, $P(t,T)$ is not yet observed and must be determined by a term structure model. Models such as Hull-White \cite{HullWhite1990} provide an analytical expression for $P(t,T)$ as a function of the short rate $r(t)$, calibrated so that the model-implied curve at $t = 0$ recovers the market-observed term structure exactly. \\
+
+    \noindent
+    The discount factor $D(t,T)$ and the zero-coupon bond price $P(t,T)$ are related but fundamentally distinct objects: the former represents an equivalent amount of currency obtained by discounting along a realised path of the short rate, whilst the latter represents the market value of a contract that pays one unit of currency at time $T$ \cite{BrigoMercurio2006}. When rates are deterministic, the two quantities coincide, since the future path of $r(t)$ is known with certainty and $D(t,T) = P(t,T)$ for all $(t,T)$. Under stochastic rates, however, $D(t,T)$ is a random variable whose value depends on the realisation of $r(s)$ over the interval $[t,T]$, whereas $P(t,T)$ remains a well-defined price observable in the market at time $t$.
+
+    \begin{definition}[Continuously Compounded Spot Rate]
+    The \textit{continuously compounded spot rate} $R(t,T)$ is the constant rate of return implied by the zero-coupon bond price over the interval $[t,T]$:
+        \begin{equation} \label{eq:spot_rate}
+          R(t,T) = -\frac{\ln P(t,T)}{T - t}.
+        \end{equation}
+    Equivalently, $P(t,T) = e^{-R(t,T)(T-t)}$.
+    \end{definition}
+    
+    \noindent
+    The mapping $T \mapsto R(t,T)$ is the yield curve or term structure of interest rates. It is important to emphasise that the yield curve is a function, not a single number. In addition, the shape of the yield curve varies over time and reflects the market's expectations about future interest rates, inflation, and economic conditions. Four principal shapes are observed in
+    practice: 
+        \begin{itemize}
+            \item \textbf{Normal (upward-sloping)}: Long-term rates exceed short-term rates. This is the most commonly observed shape and reflects the expectation that investors demand a premium for lending over longer horizons.
+            \item \textbf{Inverted (downward-sloping)}: Short-term rates exceed long-term rates. This shape has historically been associated with expectations of an economic contraction, as the market anticipates that central banks will lower rates in the future.
+            \item \textbf{Flat}: Rates are approximately equal across all maturities, typically observed during transitions between normal and inverted regimes.
+            \item \textbf{Humped}: Rates rise at intermediate maturities before declining at longer tenors. This shape can arise when the market expects rate increases in the near term followed by decreases further out.
+        \end{itemize}
+        \begin{figure}[ht]
+           \centering
+           \includegraphics[width=0.8\textwidth]{YieldCurvesShaper.png}
+           \caption{The four principal shapes of the yield curve: normal, flat, inverted and humped.}
+           \label{fig:yield_curve_shapes}
+        \end{figure}
+        
+    \noindent
+    Whilst spot rates pertain to investments commencing at the current time $t$, financial markets also quote rates that are agreed upon today for investment periods beginning at a future date.  \\
+    
+    \subsubsection*{Forward Rates}
+        \noindent
+         A forward rate is characterised by three time instants: the current time $t$, an expiry $T > t$, and a maturity $S > T$. It represents an interest rate that can be locked in today for an investment over the future period $[T, S]$, set consistently with the current term structure of discount factors. \\
+    
+        \noindent
+        The natural instrument through which forward rates are traded is the Forward Rate Agreement (FRA). In a FRA, a fixed payment based on a predetermined rate $K$ is exchanged at maturity $S$
+        against a floating payment based on the spot rate $L(T,S)$ that resets at time $T$. For a notional $N$, the payoff at time $S$ is
+        
+        \begin{equation} \label{eq:fra_payoff}
+          N \tau(T,S)(K - L(T,S)),
+        \end{equation}
+        
+        \noindent
+        where $\tau(T,S)$ denotes the day count fraction for the period $[T,S]$. By replicating this cashflow using zero-coupon bonds, the value of the FRA at time $t$ is \cite{BrigoMercurio2006}
+        
+        \begin{equation} \label{eq:fra_value}
+          V_{\text{FRA}}(t, T, S, N, K) = N \, P(t, S) \, \tau(T,S) \left(K - F(t; T, S)\right),
+        \end{equation}
+        
+        \noindent
+        where $F(t; T, S)$ is the unique value of $K$ that renders the contract fair at inception.
+        
+        \begin{definition}[Simply Compounded Forward Rate]
+        The \textit{simply compounded forward interest rate} prevailing at time $t$ for expiry $T$ and maturity $S$ is defined by
+        \begin{equation}\label{eq:fwd_rate}
+          F(t; T, S) = \frac{1}{\tau(T,S)} \left( \frac{P(t,T)}{P(t,S)} - 1 \right).
+        \end{equation}
+        It is the fixed rate in a FRA that gives the contract zero value at time $t$.
+        \end{definition}
+        
+        \noindent
+        It is important to note that the forward rate is not a prediction of where the future spot rate will settle. Rather, $F(t; T, S)$ is the value implied by the current term structure of discount factors under the no-arbitrage principle, representing the unique rate consistent with the absence of arbitrage opportunities across the zero-coupon bond market at time $t$
+        \cite{BrigoMercurio2006}.
+        
+        \begin{definition}[Instantaneous Forward Rate]
+        The \textit{instantaneous forward rate} $f(t,T)$ is the rate at time $t$ for an infinitesimal loan beginning at time $T$:
+        \begin{equation} \label{eq:inst_fwd}
+          f(t,T) = -\frac{\partial \ln P(t,T)}{\partial T}.
+        \end{equation}
+        The zero-coupon bond price can be recovered from the forward rate curve by integration:
+        \begin{equation} \label{eq:bond_from_forward}
+          P(t,T) = \exp\left(-\int_t^T f(t,s) \, ds\right).
+        \end{equation}
+        \end{definition}
+    
+    \subsubsection*{Interest Rate Swaps and the Forward Swap Rate}
+        A FRA, as defined above, exchanges a fixed payment against a floating payment over a single accrual period. An interest rate swap generalises this to multiple consecutive periods. At each payment date $T_i$ in the schedule $T_{\alpha+1}, \ldots, T_{\beta}$, the fixed leg pays\\
+        
+        \begin{equation} \label{eq:fixed_leg}                                                                V_{\text{fixed},i}(t) = N \tau_i K
+        \end{equation}
+        
+        \noindent
+        where $K$ is a predetermined fixed rate, $N$ is the notional amount, and $\tau_i$ is the day count fraction for the period $[T_{i-1}, T_i]$. In return, the counterparty pays a floating
+        amount
+        
+        \begin{equation} \label{eq:float_leg}
+            V_{\text{float},i}(t) = N \tau_i L(T_{i-1}, T_i),
+        \end{equation}
+        
+        \noindent
+        where $L(T_{i-1}, T_i)$ is the reference floating rate that fixes \footnote{A rate is said to \textit{fix} on a given date when its value is determined from the prevailing market conditions on that date and becomes contractually binding for the subsequent accrual period.}  at the future date $T_{i-1}$ and matures at $T_i$. At the valuation date $t$, this rate is not yet known, it will be determined by the term structure prevailing at $T_{i-1}$. When the fixed leg is paid and the floating leg is received, the contract is termed a payer swap. When the fixed leg is received and the floating leg is paid, it is termed receiver swap.\\
+
+        \noindent
+        Since each accrual period $[T_{i-1}, T_i]$ constitutes an individual FRA, the swap is equivalent to a portfolio of FRAs covering the periods $[T_\alpha, T_{\alpha+1}],     [T_{\alpha+1}, T_{\alpha+2}], \ldots, [T_{\beta-1}, T_\beta]$. Summing the individual FRA values from Equation~\eqref{eq:fra_value} over all payment dates, the value of a payer swap at time $t$ is
+        
+        \begin{equation} \label{eq:pfs_derivation}
+          V_{\text{PFS}}(t) = \sum_{i=\alpha+1}^{\beta} V_{\text{FRA}}(t, T_{i-1}, T_i, \tau_i, N, K) = N \sum_{i=\alpha+1}^{\beta} \tau_i \, P(t, T_i) \left( F(t; T_{i-1}, T_i) - K \right).
+        \end{equation}
+        
+        \noindent
+        To simplify the floating leg, we substitute the definition of the forward rate from Equation~\eqref{eq:fwd_rate} into the summation. The floating leg contribution becomes
+        
+        \begin{align}                                                                                     N \sum_{i=\alpha+1}^{\beta} \tau_i \, P(t, T_i) \, F(t;\, T_{i-1}, T_i)                         &= N \sum_{i=\alpha+1}^{\beta} \tau_i \, P(t, T_i) \cdot \frac{1}{\tau_i}\left(\frac{P(t, T_{i-1})}{P(t, T_i)} - 1\right) \nonumber \\                             &= N \sum_{i=\alpha+1}^{\beta} \left[ P(t, T_{i-1}) - P(t, T_i) \right] \nonumber \\
+          &= N \Big[\big(P(t,T_\alpha) - P(t,T_{\alpha+1})\big) + \big(P(t,T_{\alpha+1}) - P(t,T_{\alpha+2})\big) + \cdots \nonumber \\
+          &\qquad\quad + \big(P(t,T_{\beta-2}) - P(t,T_{\beta-1})\big) + \big(P(t,T_{\beta-1}) - P(t,T_{\beta})\big)\Big] \nonumber \\
+          &= N \left[ P(t, T_{\alpha}) - P(t, T_{\beta}) \right] \nonumber \label{eq:float_telescope}
+        \end{align}
+    
+        \noindent
+        This cancellation arises because the projection curve (used to compute forward rates) and the discounting curve (used to obtain present values) are the same. Under a single-curve framework\footnote{Following the 2007--2008 financial crisis, the market adopted a multi-curve framework in which forward rates are projected from tenor-specific curves whilst cashflows are discounted using the overnight indexed swap (OIS) curve \cite{HenrardMulticurve2014}.}, the present value of the floating leg at any valuation date is determined entirely by the initial and terminal discount factors. \\ 
+          
+        \noindent
+        A swap beginning at a future date $T_{\alpha} > t$ is referred to as a \textit{forward-starting} swap. When $T_{\alpha} = t$, the contract is a spot-starting swap. We state the valuation of both formally.
+        
+        \begin{proposition}[Spot-Starting Swap Valuation] \label{prop:spot_swap}
+        The value at time $t$ of a spot-starting payer swap with notional $N$, fixed rate $K$, and payment dates $T_1, \ldots, T_n$ is given by
+        \begin{equation} \label{eq:spot_swap_value}
+          V_{\text{spot}}(t) = N \left[ 1 - P(t, T_n) - K \sum_{i=1}^{n} \tau_i \, P(t, T_i) \right],
+        \end{equation}
+        where $P(t, T_0) = P(t, t) = 1$.
+        \end{proposition}
+        
+        \begin{proposition}[Forward-Starting Swap Valuation] \label{prop:fwd_swap}
+        The value at time $t$ of a forward-starting payer swap with notional $N$, fixed rate $K$, start date $T_{\alpha} > t$, and payment dates $T_{\alpha+1}, \ldots, T_{\beta}$ is given by
+        \begin{equation} \label{eq:fwd_swap_value}
+          V_{\text{fwd}}(t) = N \left[ P(t, T_{\alpha}) - P(t, T_{\beta}) - K \sum_{i=\alpha+1}^{\beta} \tau_i \, P(t, T_i) \right].
+        \end{equation}
+        \end{proposition}
+
+        \noindent
+        As with the FRA, we seek the fixed rate $K$ that renders the swap fair at inception, that is, the value of $K =R_x$ for which $V_{\text{PFS}}(t) = 0$.  \\
+
+        \begin{definition}[Spot-Starting Swap Rate]
+        The \textit{spot-starting swap rate} $R_x$ is the unique fixed rate that renders a spot-starting interest rate swap fair at inception:
+        \begin{equation} \label{eq:spot_swap_rate}
+        R_x = \frac{1 - P(0, T_n)}{\displaystyle\sum_{i=1}^{n} \tau_i \, P(0, T_i)}.
+        \end{equation}
+        \end{definition}
+
+        \noindent
+        Equation~\eqref{eq:spot_swap_rate} is a closed-form expression: given the initial discount curve $\{P(0, T_i)\}_{i=1}^{n}$, the fair swap rate is fully determined. No expectation is
+        taken, no stochastic model is invoked, and no simulation is required. This closed-form relationship defines the learning problem addressed in Implementation~1a. 
+        Equations~\eqref{eq:spot_swap_value} and~\eqref{eq:fwd_swap_value} share the same structure. In both cases, the swap value is a linear combination of zero-coupon bond prices evaluated at the payment dates. The only distinction is that in a spot-starting swap, the first discount factor collapses to unity, whereas in a forward-starting swap, $P(t, T_{\alpha})$ remains a non-trivial function of the term structure. In neither case does optionality, path-dependence, or simulation arise. \\
+
+    
+    \subsubsection*{Construction of the Initial Term Structure} 
+        The yield curve $T \mapsto R(0,T)$ is not directly observable, it must be inferred from the prices of traded instruments. Two broad approaches are employed in practice, each recovering
+        the same underlying object the discount function $T \mapsto P(0,T)$ through different means.\\
+
+        \noindent
+        The first approach constructs the discount curve sequentially from a set of market-quoted instruments ordered by maturity in a process called bootstrapping. At the short end, deposit rates provide direct observations of simply compounded rates over horizons of up to one year. At intermediate maturities, forward rate agreements supply additional constraints. At the long end, par swap rates are used, since the fair swap rate $R_x$ in Equation~\eqref{eq:spot_swap_rate} is a known function of the discount factors at each payment date, one can solve for unknown discount factors iteratively, beginning from the shortest maturity and proceeding outward \cite{Hull2022, Tuckman2011}. \\
+
+        \noindent
+        The result is a discrete set of discount factors $\{P(0, T_1), P(0, T_2), \ldots, P(0, T_n)\}$ at the maturities of the calibrating instruments. Between these nodes, the curve is completed by an interpolation rule applied to the zero rates, the log-discount factors, or the instantaneous forward rates. The choice of interpolation method, either linear, log-linear, or cubic spline, among others, introduces modelling discretion that affects the curve at maturities not directly pinned by market data, yet has no effect at the nodes themselves, where the bootstrapped values match observed quotes exactly by construction.\\
+        
+        \noindent
+        The second approach forms part of the Parametric fitting methods. It posits an explicit functional form for the zero-coupon curve and estimates its parameters by fitting to the observed instrument prices simultaneously. The most widely adopted specification is the Nelson-Siegel model \cite{NelsonSiegel1987}, in which the continuously compounded zero rate takes the form
+          \begin{equation} \label{eq:nelson_siegel}
+            R(0,T) = \beta_0 + \beta_1 \left(\frac{1 - e^{-\lambda T}}{\lambda T}\right) + \beta_2 \left(\frac{1 - e^{-\lambda T}}{\lambda T} - e^{-\lambda T}\right),
+          \end{equation}
+          where $\beta_0, \beta_1, \beta_2 \in \mathbb{R}$ and $\lambda > 0$. The three coefficient loadings admit a direct economic interpretation: $\beta_0$ determines the long-run level of
+        the curve, $\beta_1$ governs the slope between short and long maturities, and $\beta_2$ controls the curvature at intermediate tenors. The extension due to Svensson \cite{Svensson1994}
+        introduces a second curvature term with an independent decay parameter,
+          \begin{equation} \label{eq:svensson}
+            R(0,T) = \beta_0 + \beta_1 \left(\frac{1 - e^{-T/\tau_1}}{T/\tau_1}\right) + \beta_2 \left(\frac{1 - e^{-T/\tau_1}}{T/\tau_1} - e^{-T/\tau_1}\right) + \beta_3 \left(\frac{1 -
+        e^{-T/\tau_2}}{T/\tau_2} - e^{-T/\tau_2}\right),
+          \end{equation}
+        allowing the model to accommodate more complex curvature patterns. The parameters $(\beta_0, \beta_1, \beta_2, \beta_3, \tau_1, \tau_2)$ are typically estimated by minimising the sum of squared pricing errors across the observed instruments. The data we use in this research is constructed using the second approach.  \\
+
+
+
+  \subsubsection*{Forward Rate Simulation under the Hull-White Model}
+  The Hull-White model specifies the dynamics of the instantaneous short rate under the risk-neutral measure $\mathbb{Q}$ as                                                             
+        \begin{equation}\label{eq:hw_model}                                                      
+             dr(t) = \bigl[\theta(t) - a\,r(t)\bigr]dt + \sigma\,dW(t),                     
+        \end{equation}                                                                                                                                                                          
+      where $a > 0$ is the mean-reversion speed, $\sigma > 0$ is the volatility, and $\theta(t)$ is calibrated to the initial discount curve $P(0, T)$. Under this model, bond prices admit
+  the affine representation
+      \begin{equation}\label{eq:affine_bond}
+          P(t, T) = A(t, T)\exp\!\bigl(-B(t, T)\,r(t)\bigr), \qquad B(t, T) = \frac{1}{a}\bigl(1 - e^{-a(T-t)}\bigr),
+      \end{equation}
+      where $A(t, T)$ is a deterministic function of the initial curve and the model parameters.\\
+
+      \noindent
+      Under the $T_i$-forward measure $\mathbb{Q}^{T_i}$, with num\'{e}raire $P(t, T_i)$, the short rate dynamics acquire an additional drift term:
+      \begin{equation}\label{eq:hw_forward_measure}
+          dr(t) = \bigl[\theta(t) - a\,r(t) - \sigma^2 B(t, T_i)\bigr]dt + \sigma\,dW^{T_i}(t).
+      \end{equation}
+      The term $-\sigma^2 B(t, T_i)$ arises from the Girsanov change of measure from $\mathbb{Q}$ to $\mathbb{Q}^{T_i}$. This drift adjustment depends on the maturity $T_i$, so the short
+  rate follows a different SDE under each forward measure.\\
+
+      \noindent
+      The simply compounded forward rate for the accrual period $[T_{i-1}, T_i]$ is defined as
+      \begin{equation}\label{eq:forward_libor}
+          \ell_i(t) = \frac{1}{\tau_i}\left(\frac{P(t, T_{i-1})}{P(t, T_i)} - 1\right), \qquad \tau_i = T_i - T_{i-1}.
+      \end{equation}
+      Under $\mathbb{Q}^{T_i}$, this rate is a martingale. Its expectation at any future time equals its current value:
+      \begin{equation}\label{eq:libor_martingale}
+          \mathbb{E}^{\mathbb{Q}^{T_i}}\bigl[\ell_i(T_{i-1}) \mid \mathcal{F}_0\bigr] = \ell_i(0).
+      \end{equation}
+
+      \noindent
+      To simulate $\ell_i(T_{i-1})$, we evolve the short rate from $t = 0$ to $T_{i-1}$ under the dynamics in Equation~\eqref{eq:hw_forward_measure}. At the fixing date $T_{i-1}$, the bond
+  price $P(T_{i-1}, T_i)$ is recovered from the affine formula in Equation~\eqref{eq:affine_bond}, and the forward rate is extracted as
+      \begin{equation}\label{eq:libor_fixing}
+          \ell_i(T_{i-1}) = \frac{1}{\tau_i}\left(\frac{1}{P(T_{i-1}, T_i)} - 1\right).
+      \end{equation}
+      Repeating this procedure for each accrual period $[T_{i-1}, T_i]$, $i = 1, \ldots, m$, under the corresponding measure $\mathbb{Q}^{T_i}$, produces the full vector of simulated LIBOR
+  fixings $\bigl(\ell_1(T_0),\, \ell_2(T_1),\, \ldots,\, \ell_m(T_{m-1})\bigr)$ for one simulated path.
+         \begin{figure}[H]
+           \centering
+           \includegraphics[width=0.8\textwidth]{float_leg.png}
+           \caption{The Float Leg of an interest Rate Swap.}
+           \label{fig:float_leg}
+        \end{figure}
+
+\newpage
+    This thesis investigates the valuation of financial derivatives under X-Value Adjustments (xVAs) using  Deep Learning techniques. In the introduction, we review the foundations of asset‑pricing theory, tracing a path from risk and utility to the no‑arbitrage arguments that underpin the Black–Scholes model and the traditional risk‑neutral valuation framework. We then present an introduction to xVAs and articulate the rationale for using deep learning and broader machine‑learning approaches in this context. \\
+
+\noindent
+     Financial asset pricing models have greatly evolved over the last three centuries, from early concepts which focused on decision-making under uncertainty, mean-variance optimization, equilibrium, and no-arbitrage models [\cite{krause2001overview}]. While the early stage of this subject was focused on describing market environments and the valuation of single financial securities [\cite{dimson1999three}], theoretical advancements led to the Capital Asset Pricing Model (CAPM) and its dynamic extension, the Consumption-based CAPM (CCAPM), which established relationships between expected returns, systematic risk, and consumption flows \cite{dimson1999three}. As time moved on, attention shifted toward broader aspects of valuation, including a wide variety of assets whose characteristics extend across time and impose intricate and complex risks on investors. In the following paragraphs, we examine the major contributions that have been made over time. \\
+
+\noindent
+    The theoretical valuation of financial assets can be traced back to Daniel Bernoulli’s early work, \textit{Exposition of a New Theory on the Measurement of Risk}, originally published in 1738 [\cite{bernoulli2011exposition}]. From the earliest studies of risk, mathematicians have largely agreed on a central principle: Expected values are obtained by multiplying each possible gain by the number of ways in which it may occur and dividing the total of these products by the total number of possible cases. His work challenged the reliance on expected value by introducing the concept of expected utility to explain risk aversion [\cite{dimson1999three}]. In his writing Bernoulli laid the mathematical foundation for choice under risk by distinguishing between wealth and utility [\cite{stearns2000daniel}], which had an influence in understanding economics theory, modern portfolio theory and operations research.\\ 
+
+    \noindent
+    Another notable contribution came with the Theory Speculation by Louis Bachelier in 1900. His work contributed to the early discussion on the pricing of options and forwards.  His analysis established the probability laws for the price fluctuations that the stock market admits at a given instant, characterizing the market’s 'static state' where the probability of future movements can be evaluated mathematically [\cite{davis2006louis}]. This led to the introduction of modeling prices using random walks, formalizing the deduction that, because price increments are independent of past behavior, these fluctuations ultimately admit the Law of Gauss, or the normal distribution [\cite{Bachelier2007}]. In the context of modern finance, this introduced the martingale \footnote{Bachelier called the true price of a security a is a martingale [\cite{davis2006louis}], the true price has a mathematical expectation of zero.} (‘fair game’) framework for valuation of financial derivatives. \\
+
+
+    % A paradigm shift in financial asset pricing models was introduced by the Arbitrage-free pricing theory (APT).  Ross (1976) developed the arbitrage pricing theory as an alternative model that could potentially overcome the CAPM's problems 
+
+\noindent
+    What was critical from the approach presented by Black-Scholes (1973) was that the specific risk preferences of individual investors and the actual expected return of the underlying asset are completely absent from the pricing equation [\cite{krause2001overview}]. They utilized the concept of a riskless replicating portfolio to derive closed-form solutions for options. Building on this, Harrison and Kreps (1979) and Harrison and Pliska (1981) established a risk-neutral pricing framework where assets are valued as martingales under a specific probability measure, arguing that since the no-arbitrage value holds regardless of preferences, it must hold in a hypothetical risk-neutral world where all assets earn the risk-free rate; consequently, the price of a derivative is simply its expected payoff discounted at the risk-free rate [\cite{cox1976valuation}]. Later we will provide a mathematical proof showing the link between expected values and arbitrage-free prices \footnote{This was formalized as the Fundamental Theorem of Asset Pricing}. \\
+
+\noindent 
+    For many decades, this risk-neutral framework assumed frictionless markets where borrowing and lending occurred at a risk-free rate. However, the financial crisis of 2007–2009 exposed the limitations of this approach, specifically its failure to account for counterparty credit risk and funding cost [\cite{Gregory_2015}]. Valuation of financial derivatives was done by getting the cashflows associated to an asset and applying the right discounting factor. Formally, under the single-curve discounting framework using LIBOR \footnote{LIBOR stands for London Interbank Offered Rate} as a proxy for he risk-free rate, it largely ignored the specific costs associated with funding, credit risk, and regulatory capital [\cite{frode2022neural}]. This approach relied on the "law of one price," assuming that unique, risk-free valuations existed and were consistent across market participants, regardless of their individual creditworthiness or funding costs [\cite{Green_2016}]. However, the default of Lehman Brothers made clear that the assumptions underpinning the Black-Scholes model and risk-neutral valuation framework is overly idealized. \\ 
+    
+\noindent
+    Consequently, the industry moved toward a framework where the true economic value of a derivative is calculated as the risk-free value plus a set of additive valuation adjustments, collectively known as xVAs [\cite{Tsuchiya_2019}]. These adjustments account for the various frictions and risks previously ignored by classical risk-neutral pricing. The primary components include Credit Valuation Adjustment (CVA) to account for the expected loss from counterparty default, Debit Valuation Adjustment (DVA) to reflect the entity's own credit risk, and Funding Valuation Adjustment (FVA) to capture the costs and benefits of funding uncollateralized exposures [\cite{Gregory_2015}]. The framework has further expanded to include Margin Valuation Adjustment (MVA) for the cost of funding initial margin and Capital Valuation Adjustment (KVA) for the lifetime cost of holding regulatory capital, ensuring that the final price incorporates the total economic cost of the trade [\cite{Green_2016}].\\
+
+\noindent
+    In general, the valuation of financial derivatives involves a number of complications. The characteristics of the underlying asset further complicate derivatives valuation, particularly when instruments are path-dependent, reference multiple correlated underlying assets, or embed nonlinear payoff structures [\cite{KPMG2025DerivValuation}]. The combined effect of these challenges renders xVA valuation computationally intensive [\cite{Tsuchiya_2019}], because XVA computations require projecting the potential future values of derivative portfolios under evolving, stochastic market risk factors. Accordingly, many xVA frameworks employ sophisticated hybrid models with interest-rate and foreign-exchange dynamics as their backbone [\cite{Tsuchiya_2019}]. Furthermore, model calibration of volatility surfaces is one of the most challenging aspects of derivatives modeling, particularly within XVA frameworks.\\
+
+\noindent
+    Central to the calculations of different xVAs is the understanding of the exposure profile of the financial derivative contract. According to \citet{Gregory_2015}, exposure is a key factor in determining xVA adjustments. It must be considered because it represents the market value at risk in the event of a default scenario. Credit exposure directly influences the calculation xVAs such as CVA and DVA , while funding exposure is important when defining FVA and MVA. Exposure, in the context of this study, should not be confused with Value-at-Risk (VaR). Although they share comparable characteristics, exposure involves more complexities in terms of time horizons, risk mitigants, and applications [\cite{Gregory_2015}]. \\
+
+\noindent
+    Traditionally, Monte Carlo Simulations methods are used in computing exposure profiles. Exposure simulations can be mathematically described as a nested expectation problem, where repeated portfolio valuations create a significant computational expense [\cite{deelstra2024accelerated}]. Beyond the challenges of simulating numerous paths and evaluating exposures across multiple time steps, the aggregation of exposures at the portfolio level represents another significant driver of computational complexity in XVA frameworks. With growing literature in the application of machine learning and deep learning in pricing financial derivatives. This study specifically explores how deep learning approaches can be leveraged to alleviate the computational burden associated with exposure profile simulation, offering potential alternatives to traditional Monte Carlo methods. \\
+
+\noindent
+    Machine learning (ML) is a subset of artificial intelligence (AI) that enables computers to acquire knowledge by extracting patterns from raw data rather than relying on hard-coded rules, allowing systems to analyze massive amounts of information to uncover trends that are difficult for humans to recognize. Deep learning (DL) is a specialized subfield of machine learning that utilizes multilayered artificial neural networks (ANNs) consisting of input, hidden, and output layers to imitate the human brain's functioning and approximate complex functions. This approach achieves great power and flexibility by learning to represent the world as a nested hierarchy of concepts, where complex representations are built from simpler ones, thereby allowing the computer to learn from experience and solve intuitive problems [\cite{beck2020overview}]. While broad machine learning algorithms handle tasks such as classification, regression, and clustering, deep learning models such as Convolutional Neural Networks (CNNs) and Long Short-Term Memory (LSTM) networks are particularly robust in processing and analyzing complex, large datasets by updating weights through training processes like backpropagation to minimize error [\cite{beck2020overview}]. \\
+
+\noindent
+     In response to computational challenges, Deep Learning (DL) and Machine Learning (ML) have emerged as powerful tools to accelerate derivative pricing and risk quantification. Deep Learning and Machine Learning offer a transformative solution by training neural networks to replicate derivative pricing models via supervised learning, thereby producing accurate prices and sensitivities at staggering speeds [\cite{Murex_Derivatives_Pricing_NN}]. Research indicates that while generic neural networks may struggle to capture the nuances of financial instruments and specific event dates, tailored architectures designed to reflect model dynamics yield high-fidelity results \cite{Murex_Derivatives_Pricing_NN}. By utilizing Recurrent Neural Networks (RNNs), specifically gated recurrent units (GRUs), combined with a "latent space" akin to autoencoders, these advanced models can decompose evaluation processes into sequences that mirror the time-stepping nature of traditional PDE or Monte Carlo methods while effectively managing the curse of dimensionality [\cite{beck2020overview}]. By utilizing architectures optimized for sequence modeling, such as Recurrent Neural Networks (RNNs) and Gated Recurrent Units (GRUs), practitioners can reproduce exposure profiles with high accuracy while drastically reducing computation time [\cite{frode2022neural}].
+
+\noindent
+\chapter{Objective and Contributions}
+
+    In practice, there is a fundamental trade-off between computational accuracy and execution speed that has to be made [\cite{Tsuchiya_2019}]. This research aims to address the computational bottlenecks in xVA valuation. The primary focus is on creating efficient, accurate alternatives to traditional Monte Carlo simulations for exposure profile computation, with a specific application to interest rate derivatives. The research is structured around two core objectives: \\
+                
+    \noindent
+    \begin{itemize}
+        \item The first objective develops neural network surrogate models to compute exposure profiles directly from market data, eliminating nested Monte Carlo simulations. We will implement recurrent architectures (RNNs, GRUs, LSTMs) that learn the functional relationship between market states and exposure metrics. Initial validation will use vanilla interest rate swaps to benchmark performance against traditional methods.
+    
+        \item The second objective extends this approach to Bermudan swaptions, where early exercise features significantly complicate exposure calculations. We will develop specialized neural networks to solve the optimal stopping problem inherent in these instruments, enabling efficient exposure profile generation without the computational burden of traditional regression-based Monte Carlo methods.
+    \end{itemize}
+
+    \noindent 
+    The main contribution of this research lies in developing computationally efficient models that maintain accuracy while significantly accelerating exposure profile calculations. Once trained, these models enable immediate inference capabilities, providing front-office analysts with rapid price quotations for real-time decision-making. Additionally, the trained models facilitate straightforward computation of risk sensitivities through automatic differentiation, eliminating the need for finite difference approximations. This research directly addresses the critical computational challenges financial institutions face in calculating exposure profiles while maintaining the accuracy required for regulatory compliance and risk management. 
+\section{Introduction}\label{sec:method_introduction} 
+    The computation of credit exposure profiles lies at the heart of xVA calculations. Following the framework of \cite{zhu2007guide}, the process consists of three stages: generating scenarios that represent the future evolution of market risk factors, valuing the instrument on each scenario at each future date, and aggregating the resulting values into exposure statistics. Of these three stages, instrument valuation carries the highest computational cost. However, this study focuses on the combined challenge of computing exposure profiles, which adds a layer of complexity beyond valuation alone. \\
+    
+    \noindent
+    First, exposure calculations rarely admit closed-form solutions. As \cite{Gregory_2015} notes, computing exposures is fundamentally an option pricing problem. This payoff captures the loss if the counterparty defaults when the contract has positive value, structurally similar to holding a short option position. However, the complexity of the underlying products and the additional components that drive xVA calculations present a significant challenge.\\
+
+    \noindent
+    Let $X(t) \in \mathbb{R}^d$ denote the vector of market risk factors at time $t$, and let $\{t_k\}_{k=1}^{M}$ be a fixed set of future simulation dates with $t_M = T$. At each simulation date $t_k$, the mark-to-market value of a derivative contract, conditional on the observed history of risk factors, is given by:
+    
+    \begin{equation}\label{eq:valuation}
+    V(t_k,\{X(t_j)\}_{j=1}^{k}) = \mathbb{E}^{\mathbb{Q}} \Big[ V^{MTM}(t_k,\{X(t)\}_{t \leq t_k}) \Big| \{X(t_j) = x_j\}_{j=1}^{k} \Big]
+    \end{equation}
+
+    \noindent
+    This conditional expectation is an integral over all possible future evolutions of the risk factors from $t_k$ to maturity. While linear products admit a closed-form solution to \ref{eq:valuation}, non-linear or path-dependent products have no such closed-form expression and must be approximated numerically. In a Monte Carlo framework, the approximation proceeds by simulating $K$ inner paths from the observed state at $t_k$, computing the payoff
+    on each path, and averaging. The computational cost of a single evaluation is $K \cdot (M - k) \cdot d$, where $M - k$ is the number of remaining time steps and $d$ is the dimension of the
+    state vector.\\
+
+    \noindent
+    The quantity that drives the computational cost of xVA is the discounted expected exposure:
+
+    \begin{equation}\label{eq:EE}
+    EE^{*}(t_k) = \mathbb{E}^{\mathbb{Q}} \Big[ \frac{B_0}{B(t_k)} E(t_k) \Big]
+    \end{equation}
+    
+    \noindent
+    where $E(t_k) = \max(V^{MTM}(t_k), 0)$ is the credit exposure at time $t_k$. Assuming independence of the loss given default and the default probability distribution,
+
+    \begin{equation}\label{eq:cva}
+        CVA = LGD \int_{0}^{T} EE^{*}(t) \, dPS(t)
+    \end{equation}
+
+    \noindent
+    Computing $EE^{*}(t_k)$ is not a separate operation from valuation. To evaluate the expectation in (\ref{eq:EE}), one must first obtain the mark-to-market value $V^{MTM}(t_k)$ on each scenario via (\ref{eq:valuation}), apply the max operator to obtain the exposure, discount, and finally average across scenarios. The max operator and discounting are computationally negligible, and the averaging requires only a single pass over $N$ values. The computational burden therefore lies entirely in evaluating (\ref{eq:valuation}) at every simulation date on every scenario and this must be repeated for each $t_k$ in ${t_1, \ldots, t_M}$ to compute the full $EE^{*}$ profile.
+    
+    \begin{equation}\label{eq:total_sim}
+    \sum_{i=1}^{N} \sum_{k=1}^{M} K \cdot (M - k) \cdot d
+    = N \cdot K \cdot d \cdot \frac{M(M-1)}{2}
+    = \mathcal{O}(N , K , M^2 , d)
+    \end{equation}
+    \noindent
+    The quadratic dependence on $M$ arises because at early simulation dates, the inner paths must traverse nearly the entire time grid to reach maturity. This is the essence of the nested simulation curse: the inner loop is executed $N \times M$ times, and each execution itself costs $\mathcal{O}(M \cdot d)$ per path. Consequently, any method that reduces the cost of evaluating (\ref{eq:valuation}) across the simulation grid directly reduces the cost of producing the expected exposure profile, and with it, the cost of CVA.\\
+
+    \noindent
+    For instruments with embedded optionality, the problem is compounded. A Bermudan swaption, for instance, grants the holder the right to exercise at a finite set of dates ${T_1, \ldots, T_N}$, introducing an optimal stopping problem. The value function satisfies the backward recursion \cite{oosterlee2019mathematical}
+        
+    \begin{equation}\label{eq:bermudan_recursion}
+        V(t_m, x) = \begin{cases}
+        U_N(x), & t_m = T_N, \\
+        \max(C(t_m, x),\, U_n(x)), & t_m = T_n,\; n < N, \\
+        C(t_m, x), & T_n < t_m < T_{n+1},\; n < N,
+      \end{cases}
+    \end{equation}
+     
+     \noindent
+      where $U_n(x)$ is the exercise payoff and the continuation value is:
+    
+      \begin{equation}\label{eq:continuation}
+      C(t_m, x) = B_{t_m} \, \mathbb{E}^{\mathbb{Q}} \left[ \frac{V(t_{m+1}, X_{t_{m+1}})}{B_{t_{m+1}}} \;\Big|\; X_{t_m} = x \right]
+      \end{equation}
+        
+    \noindent
+    This continuation value has no closed-form expression. In regression-based Monte Carlo methods such as the Least Squares Method (LSM) of \cite{longstaff2001valuing}, it is approximated by a linear combination of basis functions. The central computational problem is therefore twofold: (i) the $\mathcal{O}(N K M^2 d)$ cost of nested Monte Carlo for evaluating (\ref{eq:valuation}) across the full simulation grid, and
+    (ii) the additional complexity introduced by the optimal stopping problem (\ref{eq:bermudan_recursion})--(\ref{eq:continuation}).
+    
+    \newpage
+    \section{Purpose Statement}\label{sec:purpose_statement}
+    
+    The purpose of this study is to develop and train a neural network-based surrogate model that bypasses the inner Monte Carlo simulation in the computation of expected exposure \ref{eq:EE}. Once trained, this network can be used to infer new expected exposure profiles directly, without additional nested simulations.\\ 
+
+    \noindent
+    The study proceeds through three stages of increasing complexity, each building on the validation of the previous:
+    
+    \begin{itemize}
+      \item Implementation 1a: A surrogate model is trained to replicate the semi-analytical expected exposure profile of a vanilla interest rate swap under the Hull-White model \cite{jamshidian1989exact}. Because the analytical solution is known exactly, this stage establishes a ground-truth benchmark against which the neural network's approximation error can be measured without confounding Monte Carlo noise.
+    
+      \item Implementation 1b: A neural network is trained to approximate the conditional expectation in (\ref{eq:valuation}) directly from the simulated market state, replacing the $K$ inner paths at each valuation point with a single forward pass through the network. This eliminates the inner simulation loop while operating within the same Hull-White Monte Carlo framework.
+    
+      \item implementation 2: The approach is extended to Bermudan swaptions, where the neural network must additionally learn the optimal exercise strategy. Following \cite{andersson2021deep}, a sequence of networks is trained via backward recursion on risk-neutral scenarios to approximate the continuation value in (\ref{eq:continuation}), and the learned approximation is then applied on real-world scenarios to compute exposure profiles. Accuracy is benchmarked against the LSM results of \cite{feng2016efficient}.
+    \end{itemize}
+    
+    
+    \section{Research Questions and Experimental Setup}\label{sec:research_questions}
+    
+    \subsection*{Research Question 1}                                                        
+    \textit{Can a feedforward neural network learn the mapping from Hull-White model parameters and market data to the semi-analytical expected exposure profile of a vanilla interest rate swap with relative error below 1\% across all monitoring dates?} \\
+    
+    \noindent
+    The semi-analytical expected exposure of a vanilla interest rate swap is computed using the equivalence between the discounted expected exposure at time $T_i$ and the price of a European  payer swaption expiring at $T_i$ on the remaining swap \cite{jamshidian1989exact}. Each swaption is decomposed into a portfolio of zero-coupon bond put options via the Jamshidian trick, and each bond option is priced in closed form under the Hull-White model using the formula of \cite{hull1994numerical}. The undiscounted expected exposure is recovered as $EE(T_i) = DEE(T_i) / P(0, T_i)$. This pipeline is evaluated across a grid of Hull-White parameters $(a, \sigma)$ and observed zero-coupon bond curves $\{P(0, T_k)\}_{k=1}^{M}$ on 40 quarterly tenors, producing a dataset of $M$-dimensional expected exposure vectors. A feedforward neural network is trained to map from the input tuple $(a, \sigma, \{P(0, T_k)\}_{k=1}^{M})$ to the expected exposure vector $\{EE(t_k)\}_{k=1}^{M}$. Performance is measured by the maximum absolute relative error on a held-out test set, and the inference time of the trained network is compared against the analytical pipeline to quantify any computational speedup.
+    
+    \subsection*{Research Question 2}
+    
+    \textit{Can a neural network surrogate replace the inner Monte Carlo simulation for computing the expected exposure profile of a vanilla interest rate swap, producing $EE^{*}$ and PFE
+    curves that are statistically indistinguishable from a full nested simulation with $K = 10^4$ inner paths?}\\
+    
+    \noindent
+    We use the Hull-White one-factor Monte Carlo framework implemented in the previous question. The \texttt{HullWhiteSimulation} module generates $N$ outer paths of the short rate $r(t)$ via
+    exact discretization on a quarterly time grid $\{t_1, \ldots, t_M\}$. At each monitoring date $t_k$ on each path, the swap is valued analytically using the affine
+    bond pricing formula $P(t_k, T) = A(t_k, T)\exp(-B(t_k, T)\,r(t_k))$, and the exposure is computed as $E(t_k) = \max(V^{Swp}(t_k), 0)$. This vectorised computation serves as the nested
+    Monte Carlo benchmark. A feedforward neural network is then trained to approximate the conditional expectation directly from the simulated short rate $r(t_k)$,
+    replacing the inner valuation at each point $(i, k)$ with a single forward pass through the network. The resulting expected exposure and potential future exposure profiles are compared
+    against both the Monte Carlo output and the semi-analytical solution from Research Question 1, which provides an independent reference free of simulation noise.
+    
+    \subsection*{Research Question 3}
+    
+    \textit{For a Bermudan swaption under the Hull-White model, does a neural network-based approximation of the continuation value in (\ref{eq:continuation}) produce $EE^{*}$, estimates within the standard errors reported by the SGBM and LSM algorithms of \cite{feng2016efficient}?}\\
+
+    Inprogress
+
+    \newpage    
+\newpage                                                                                                                                                                                    
+  \section{Implementation 1a: Approximating the Semi-Analytical Exposure Profile}\label{sec:model1a}                                                                                       
+  Computing the exposure of a derivative product is not always available in closed form. As \cite{Gregory_2015} explains, at its core, the problem of computing exposures is fundamentally an option pricing problem                                                                                                                                                                     
+  \begin{equation}
+      E(t) = \max(V^{MTM}(t),\, 0)
+  \end{equation}                                                                                                                                                                              
+
+  \noindent
+  Although the price of a vanilla interest rate swap is linear and admits a closed-form expression, the exposure introduces a non-linearity due to the max operator. Drawing upon the
+  frameworks of \cite{sorensen1994pricing} and \cite{jamshidian1989exact}, we derive a semi-analytical solution for the expected exposure profile of a vanilla interest rate swap under the
+  Hull-White model. This provides an exact benchmark, free of Monte Carlo noise, against which any surrogate model can be measured. 
+
+  \subsection{Semi-Analytical Expected Exposure}
+
+  \begin{lemma}\label{lem:swapEE_equivalent_swaption}
+  Let $V^{Swp}(t)$ be the value at time $t$ of an interest rate swap under the risk-neutral measure $\mathbb{Q}$, and let $M(t)$ denote the money-market account. Then the discounted expected
+   exposure at time $T_i$ equals the price of a European payer swaption with expiry $T_i$:
+  \begin{align*}
+      DEE(T_i) &= \mathbb{E}^{\mathbb{Q}} \left[ \frac{M(t_0)}{M(T_i)} \max\!\left(V^{Swp}(T_i),\, 0\right) \,\Big|\, \mathcal{F}_{t_0} \right] \\
+      &= \mathbb{E}^{\mathbb{Q}} \left[ \frac{1}{M(T_i)} V^{Swpt}(T_i, K) \,\Big|\, \mathcal{F}_{t_0} \right]
+  \end{align*}
+  where $V^{Swpt}(T_i, K)$ is the value of a European swaption with strike $K$ and exercise date $T_i$. The undiscounted expected exposure is recovered as $EE(T_i) = DEE(T_i) / P(0, T_i)$.
+  \end{lemma}
+
+  \noindent
+  Following \cite{jamshidian1989exact}, the swaption price under the Hull-White model is computed in four steps:\\
+  
+  \noindent
+  Step 1: Coupon bond representation. The swap's future cashflows at time $T_i$ simplify to an expression involving only zero-coupon bond prices:
+  \begin{equation}
+      \sum_{k=i+1}^{m} \tau_k P(T_i, T_k)\left(\ell_k(T_i) - K\right) = 1 - \sum_{k=i+1}^{m} c_k P(T_i, T_k)
+  \end{equation}
+  where $c_k = K\tau_k$ for $k = i+1, \ldots, m-1$ and $c_m = 1 + K\tau_m$.\\
+
+  \noindent  
+  Step 2: Critical rate $r^*$. Under the Hull-White model, $P(T_i, T_k) = A(T_i, T_k)\exp(-B(T_i, T_k)\,r(T_i))$ is strictly decreasing in $r$. There exists a unique $r^*$ such
+  that:
+  \begin{equation}
+      \sum_{k=i+1}^{m} c_k \, A(T_i, T_k)\exp\!\left(-B(T_i, T_k)\, r^*\right) = 1
+  \end{equation}
+  This is solved numerically via Newton's method. \\
+  
+  \noindent
+  Step 3: Jamshidian decomposition. Define strike prices $\hat{K}_k = A(T_i, T_k)\exp(-B(T_i, T_k)\, r^*)$. By the monotonicity of the bond prices in $r$, the swaption decomposes
+  into a portfolio of zero-coupon bond put options:
+  \begin{equation}
+      V^{Swpt}(t_0) = N \cdot \sum_{k=i+1}^{m} c_k \; \text{Put}(t_0;\, T_i,\, T_k,\, \hat{K}_k)
+  \end{equation}
+
+  \noindent
+  Step 4: ZCB option pricing. Each put option has the closed-form solution \cite{hull1994numerical}:
+  \begin{equation}
+      \text{Put}(t_0;\, T_i,\, T_k,\, X) = X\, P(0,T_i)\,\Phi(-d_2) - P(0,T_k)\,\Phi(-d_1)
+  \end{equation}
+  where
+  \begin{equation}
+      d_1 = \frac{\ln\!\left(\frac{P(0,T_k)}{X\,P(0,T_i)}\right)}{\sigma_P} + \frac{\sigma_P}{2}, \qquad d_2 = d_1 - \sigma_P, \qquad \sigma_P = \sigma\, B(T_i, T_k)\sqrt{\frac{1 - e^{-2a
+  T_i}}{2a}}
+  \end{equation}
+
+
+  \subsection{Dataset Generation}
+
+  The semi-analytical pipeline above maps the input tuple $(a, \sigma, \{P(0, T_k)\}_{k=1}^{40})$ to the 40-dimensional expected exposure vector $\{EE(t_k)\}_{k=1}^{40}$. To generate a
+  training dataset, we evaluate this mapping across a grid of Hull-White parameters and a historical collection of observed zero-coupon bond curves.
+
+  \begin{algorithm}
+  \caption{Dataset Generation for Implementation 1a}\label{alg:datagen_1a}
+  \begin{algorithmic}[1]
+      \Require Historical ZCB curves $\{P^{(d)}(0, T_k)\}_{k=1}^{40}$ for $d = 1, \ldots, D$ market dates, parameter grids $\mathcal{A} = \{a_1, \ldots, a_{10}\}$ and $\mathcal{S} =
+  \{\sigma_1, \ldots, \sigma_{10}\}$
+      \Ensure Dataset $\mathcal{D} = \{(\mathbf{x}^{(n)}, \mathbf{y}^{(n)})\}_{n=1}^{N}$
+      \State $n \leftarrow 0$
+      \For{each market date $d = 1, \ldots, D$}
+          \State Load observed ZCB curve $\{P^{(d)}(0, T_k)\}_{k=1}^{40}$
+          \State Fit cubic spline to $\ln P^{(d)}$; extract forward curve $f^{(d)}(0, t)$ and initial rate $r_0^{(d)}$
+          \State Compute ATM par swap rate $K^{(d)}$
+          \For{each $a \in \mathcal{A}$}
+              \For{each $\sigma \in \mathcal{S}$}
+                  \State Calibrate Hull-White model with parameters $(a, \sigma, r_0^{(d)}, f^{(d)})$
+                  \For{each monitoring date $T_i \in \{0.25, 0.50, \ldots, 10.00\}$}
+                      \State Price payer swaption via Jamshidian decomposition $\rightarrow DEE(T_i)$
+                      \State $EE(T_i) \leftarrow DEE(T_i) / P^{(d)}(0, T_i)$
+                  \EndFor
+                  \State $n \leftarrow n + 1$
+                  \State $\mathbf{x}^{(n)} \leftarrow (a, \sigma, K^{(d)}, \{P^{(d)}(0, T_k)\}_{k=1}^{40})$ \Comment{Input features}
+                  \State $\mathbf{y}^{(n)} \leftarrow \{EE(T_k)\}_{k=1}^{40}$ \Comment{Target labels}
+              \EndFor
+          \EndFor
+      \EndFor
+      \State \Return $\mathcal{D}$
+  \end{algorithmic}
+  \end{algorithm}
+
+  \noindent
+  The parameter grids are log-spaced to ensure adequate coverage of both low and high parameter regimes:
+
+  \begin{table}[htbp]
+  \centering
+  \caption{Dataset specification for Implementation 1a.}\label{tab:dataset_1a}
+  \begin{tabular}{ll}
+  \toprule
+  \textbf{Component} & \textbf{Specification} \\
+  \midrule
+  Market data (D) ($D$) & 11{,}472 historical ZCB curves \\
+  Mean reversion $a$ & 10 log-spaced values in $[0.001,\, 0.23]$ \\
+  Volatility $\sigma$ & 10 log-spaced values in $[0.001,\, 0.01]$ \\
+  Monitoring tenors & 40 quarterly dates: $\{0.25, 0.50, \ldots, 10.00\}$ \\
+  Total samples ($N$) & $11{,}472 \times 10 \times 10 = 1{,}147{,}200$ \\
+  Input dimension & $(40, 4)$: ZCB price, $a$, $\sigma$, $K$ per tenor \\
+  Output dimension & $40$: $EE(T_k)$ for each tenor \\
+  \bottomrule
+  \end{tabular}
+  \end{table}
+
+
+  \subsection{Surrogate Model Architecture and Training}
+
+  The input to the surrogate model is a sequence of 40 time steps, each carrying four features: the observed ZCB price $P(0, T_k)$, the mean reversion speed $a$, the volatility $\sigma$, and
+   the ATM par swap rate $K$. The output is the 40-dimensional expected exposure vector. The sequential nature of the input an ordered term structure motivates the use of recurrent
+  architectures.\\
+  \noindent
+  We train three recurrent models: a vanilla RNN, a GRU, and an LSTM. All share the same architecture:
+
+  \begin{table}[htbp]
+  \centering
+  \caption{Neural network architecture.}\label{tab:architecture}
+  \begin{tabular}{ll}
+  \toprule
+  \textbf{Component} & \textbf{Specification} \\
+  \midrule
+  Input size & 4 features per time step \\
+  Recurrent layers & 2 stacked layers, hidden size 128 \\
+  Dropout (between layers) & 0.3 \\
+  Output layer & Linear$(128 \rightarrow 1)$ applied at each time step \\
+  Output activation & None (regression) \\
+  \bottomrule
+  \end{tabular}
+  \end{table}
+
+  \noindent
+  The forward pass processes the input sequence $(40, 4)$ through the recurrent layers to produce a hidden state of dimension $(40, 128)$ at each time step. A shared linear layer maps each
+  hidden state to a scalar, yielding the 40-dimensional output.
+
+  \begin{algorithm}
+  \caption{Training Procedure for Surrogate Model}\label{alg:training_1a}
+  \begin{algorithmic}[1]
+      \Require Dataset $\mathcal{D} = \{(\mathbf{x}^{(n)}, \mathbf{y}^{(n)})\}_{n=1}^{N}$
+      \Ensure Trained model $f_\theta$
+      \State Split $\mathcal{D}$ into $\mathcal{D}_{\text{train}}$ (80\%), $\mathcal{D}_{\text{val}}$ (10\%), $\mathcal{D}_{\text{test}}$ (10\%), stratified by yield curve shape
+      \State Fit StandardScaler on $\mathcal{D}_{\text{train}}$ for both inputs and outputs
+      \State Transform all splits using fitted scalers
+      \State Initialise model $f_\theta$, best validation loss $\ell^* \leftarrow \infty$, patience counter $p \leftarrow 0$
+      \For{epoch $= 1, 2, \ldots, 200$}
+          \For{each mini-batch $\{(\mathbf{x}_i, \mathbf{y}_i)\}_{i=1}^{512} \subset \mathcal{D}_{\text{train}}$}
+              \State Forward pass: $\hat{\mathbf{y}}_i \leftarrow f_\theta(\mathbf{x}_i)$
+              \State Compute loss: $\mathcal{L} \leftarrow \frac{1}{512} \sum_i \|\hat{\mathbf{y}}_i - \mathbf{y}_i\|^2$
+              \State Backward pass: compute $\nabla_\theta \mathcal{L}$
+              \State Clip gradients: $\|\nabla_\theta\|_{\max} \leq 1.0$
+              \State Update: $\theta \leftarrow \theta - \eta \cdot \text{AdamW}(\nabla_\theta \mathcal{L})$ with $\eta = 10^{-3}$, weight decay $5 \times 10^{-4}$
+          \EndFor
+          \State Evaluate $\ell_{\text{val}}$ on $\mathcal{D}_{\text{val}}$
+          \If{$\ell_{\text{val}} < \ell^*$}
+              \State $\ell^* \leftarrow \ell_{\text{val}}$; save $\theta$; $p \leftarrow 0$
+          \Else
+              \State $p \leftarrow p + 1$
+              \If{$p \geq 20$} \textbf{break} \Comment{Early stopping}
+              \EndIf
+              \If{$p \bmod 7 = 0$} $\eta \leftarrow \eta / 2$ \Comment{Reduce learning rate}
+              \EndIf
+          \EndIf
+      \EndFor
+      \State Restore best $\theta$; inverse-transform predictions for evaluation
+      \State \Return $f_\theta$
+  \end{algorithmic}
+  \end{algorithm}
+
+  \noindent
+  The stratified split ensures that each subset contains a representative mix of yield curve shapes (normal, inverted, flat, and humped), preventing the model from being evaluated on regimes
+   it has not seen during training.
+
+
+  \newpage
+  \section{Implementation 1b --- Approximating Exposure Profiles via Monte Carlo}\label{sec:model1b}
+
+  While the analytical approach of Section~\ref{sec:model1a} provides an exact benchmark, it is limited to European-style exercise and the specific structure of vanilla swaps. Monte Carlo
+  simulation provides a general-purpose alternative that accommodates arbitrary payoff structures and path-dependent features. This section details the Monte Carlo framework for computing
+  exposure profiles under the Hull-White one-factor model, and the surrogate model trained to replace it.
+
+  \subsection{Hull-White Exact Discretization}
+
+  To solve the Hull-White SDE, we employ an integrating factor. The short rate is a Gaussian process whose transition density is known in closed form, allowing exact simulation without time-stepping bias. Let the simulation dates be $t_0 < t_1 < \cdots < t_M$ with constant step $\Delta = t_{k+1} - t_k$. Conditional on $r(t_k)$, the short rate at
+   $t_{k+1}$ is normally distributed:
+
+  \begin{equation}\label{eq:hw_transition}
+      r(t_{k+1}) \mid r(t_k) \;\sim\; \mathcal{N}\!\left(r(t_k)e^{-a\Delta} + \Theta(t_k, \Delta),\; \Sigma^2(\Delta)\right)
+  \end{equation}
+  where
+  \begin{equation}
+      \Theta(t_k, \Delta) = f(0, t_{k+1}) - f(0, t_k)e^{-a\Delta} + \frac{\sigma^2}{2a^2}\left(1 - e^{-a\Delta}\right)\left(1 - e^{-a(2t_k + \Delta)}\right)
+  \end{equation}
+  \begin{equation}
+      \Sigma(\Delta) = \sigma\sqrt{\frac{1 - e^{-2a\Delta}}{2a}}
+  \end{equation}
+
+  \noindent
+  For each path and each time step, we generate an independent standard normal draw $Z_k \sim \mathcal{N}(0,1)$ and update the short rate via:
+  \begin{equation}\label{eq:hw_update}
+      r(t_{k+1}) = r(t_k)e^{-a\Delta} + \Theta(t_k, \Delta) + \Sigma(\Delta)\, Z_k
+  \end{equation}
+
+  \noindent
+  The forward curve $f(0,t)$ is interpolated from observed market ZCB prices via cubic spline on $\ln P(0, t)$, and the parameters $a$ and $\sigma$ are taken from the same grid used in
+  Implementation 1a.
+
+  \subsection{Swap Valuation and Exposure Computation}
+
+  At each monitoring date $t_k$ on each simulated path $m$, the interest rate swap is valued using the affine bond pricing formula:
+  \begin{equation}
+      P(t_k, T) = A(t_k, T)\exp\!\left(-B(t_k, T)\, r^{(m)}(t_k)\right)
+  \end{equation}
+
+  \noindent
+  The positive exposure on path $m$ at time $t_k$ is:
+  \begin{equation}
+      E^{(m)}(t_k) = \max\!\left(V^{Swp,(m)}(t_k),\, 0\right)
+  \end{equation}
+
+  \noindent
+  The undiscounted expected exposure is estimated by averaging across all $N$ paths:
+  \begin{equation}
+      \widehat{EE}(t_k) = \frac{1}{N}\sum_{m=1}^{N} E^{(m)}(t_k)
+  \end{equation}
+
+  \noindent
+  The discounted expected exposure incorporates the stochastic discount factor along each path:
+  \begin{equation}
+      \widehat{DEE}(t_k) = \frac{1}{N}\sum_{m=1}^{N} D^{(m)}(0, t_k) \cdot E^{(m)}(t_k)
+  \end{equation}
+  where $D^{(m)}(0, t_k) = \exp\!\left(-\sum_{j=0}^{k-1} \frac{1}{2}(r^{(m)}(t_j) + r^{(m)}(t_{j+1}))\Delta\right)$ is computed via trapezoidal integration of the simulated short rate. \\
+  
+  \noindent
+  The expected positive exposure (EPE), following \cite{Gregory_2015}, is the time-averaged expected exposure:
+  \begin{equation}
+      EPE = \frac{1}{T} \int_0^T EE(t)\, dt
+  \end{equation}
+  approximated by the trapezoidal rule over the discrete monitoring dates.
+
+  \subsection{Dataset Generation}
+
+  The Monte Carlo pipeline maps the same inputs as Implementation 1a to 40-dimensional expected exposure vectors, but the labels are now computed by simulation rather than analytically.
+
+  \begin{algorithm}
+  \caption{Dataset Generation for Implementation 1b}\label{alg:datagen_1b}
+  \begin{algorithmic}[1]
+      \Require Historical ZCB curves $\{P^{(d)}(0, T_k)\}_{k=1}^{40}$ for $d = 1, \ldots, D$ market dates, parameter grids $\mathcal{A}$, $\mathcal{S}$, number of MC paths $N_{\text{mc}}$
+      \Ensure Dataset $\mathcal{D} = \{(\mathbf{x}^{(n)}, \mathbf{y}^{(n)})\}_{n=1}^{N}$
+      \State $n \leftarrow 0$
+      \For{each market date $d = 1, \ldots, D$}
+          \State Load observed ZCB curve; fit forward curve $f^{(d)}(0, t)$; compute par rate $K^{(d)}$
+          \For{each $a \in \mathcal{A}$}
+              \For{each $\sigma \in \mathcal{S}$}
+                  \State Calibrate Hull-White model with $(a, \sigma, r_0^{(d)}, f^{(d)})$
+                  \State Simulate $N_{\text{mc}} = 12{,}000$ paths of $r(t)$ via (\ref{eq:hw_update}) on quarterly grid
+                  \State Compute discount factors $D^{(m)}(0, t_k)$ for all paths and dates
+                  \For{each monitoring date $T_k \in \{0.25, 0.50, \ldots, 10.00\}$}
+                      \State Value swap on all paths: $V^{(m)}(T_k) \leftarrow$ fixed leg $-$ floating leg
+                      \State Compute exposures: $E^{(m)}(T_k) \leftarrow \max(V^{(m)}(T_k), 0)$
+                      \State $EE(T_k) \leftarrow \frac{1}{N_{\text{mc}}} \sum_{m=1}^{N_{\text{mc}}} E^{(m)}(T_k)$
+                  \EndFor
+                  \State $n \leftarrow n + 1$
+                  \State $\mathbf{x}^{(n)} \leftarrow (a, \sigma, K^{(d)}, \{P^{(d)}(0, T_k)\}_{k=1}^{40})$
+                  \State $\mathbf{y}^{(n)} \leftarrow \{EE(T_k)\}_{k=1}^{40}$
+              \EndFor
+          \EndFor
+      \EndFor
+      \State \Return $\mathcal{D}$
+  \end{algorithmic}
+  \end{algorithm}
+
+  \begin{table}[htbp]
+  \centering
+  \caption{Dataset specification for Implementation 1b.}\label{tab:dataset_1b}
+  \begin{tabular}{ll}
+  \toprule
+  \textbf{Component} & \textbf{Specification} \\
+  \midrule
+  Market dates ($D$) & 11{,}472 historical ZCB curves \\
+  Mean reversion $a$ & 10 log-spaced values in $[0.001,\, 0.23]$ \\
+  Volatility $\sigma$ & 10 log-spaced values in $[0.001,\, 0.01]$ \\
+  MC paths per sample & 12{,}000 \\
+  Monitoring tenors & 40 quarterly dates: $\{0.25, 0.50, \ldots, 10.00\}$ \\
+  Total samples ($N$) & $11{,}472 \times 10 \times 10 = 1{,}147{,}200$ \\
+  Input dimension & $(40, 4)$: ZCB price, $a$, $\sigma$, $K$ per tenor \\
+  Output dimension & $40$: $EE(T_k)$ for each tenor \\
+  \bottomrule
+  \end{tabular}
+  \end{table}
+
+
+  \subsection{Surrogate Model Architecture and Training}
+
+  The neural network architecture and training procedure are identical to those described in Section~\ref{sec:model1a} (Algorithm~\ref{alg:training_1a}), with the following modification: the
+   dropout rate is reduced from 0.3 to 0.25 to account for the additional noise in the Monte Carlo-generated labels. All other hyperparameters, AdamW optimizer with learning rate
+  $10^{-3}$, weight decay $5 \times 10^{-4}$, gradient clipping at norm 1.0, batch size 512, early stopping with patience 20, and learning rate reduction on plateau remain unchanged.
+
+  The key difference between Implementations 1a and 1b is not the model but the labels. In 1a, the network learns to approximate a deterministic function (the analytical exposure profile).
+  In 1b, the network learns to approximate a stochastic estimate (the Monte Carlo average), which introduces label noise. Comparing the trained models against the analytical benchmark from
+  1a allows us to disentangle the approximation error of the neural network from the Monte Carlo noise in the training labels.

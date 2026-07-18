@@ -1,0 +1,34 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{Abstract}{1}{Doc-Start}%
+\contentsline {chapter}{List of Figures}{1}{Doc-Start}%
+\contentsline {chapter}{List of Tables}{2}{Doc-Start}%
+\contentsline {chapter}{List of Notations}{3}{chapter*.1}%
+\contentsline {chapter}{Notation}{4}{chapter*.2}%
+\contentsline {part}{I\hspace {1em}Introduction and Background}{6}{part.1}%
+\contentsline {chapter}{\numberline {1}Introduction}{7}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Background and Literature Review}{12}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Thesis Outline}{20}{chapter.3}%
+\contentsline {part}{II\hspace {1em}Theoretical Foundations}{21}{part.2}%
+\contentsline {chapter}{\numberline {4}Valuation of Financial Derivatives}{22}{chapter.4}%
+\contentsline {chapter}{\numberline {5}Interest Rate Curves and Term Structure Models}{30}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Counterparty Credit Risk and xVAs}{49}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Neural Networks and Deep Learning}{54}{chapter.7}%
+\contentsline {part}{III\hspace {1em}Methodology and Models}{69}{part.3}%
+\contentsline {chapter}{\numberline {8}Methodology}{70}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Introduction}{70}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Model Assumptions}{72}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Numerical Pricing of the IRS Under Hull-White}{75}{section.8.3}%
+\contentsline {section}{\numberline {8.4}Monte Carlo Simulation and Exposure}{77}{section.8.4}%
+\contentsline {section}{\numberline {8.5}Surrogate Models}{78}{section.8.5}%
+\contentsline {subsection}{\numberline {8.5.1}Data Generation}{78}{subsection.8.5.1}%
+\contentsline {subsection}{\numberline {8.5.2}Model Inputs}{78}{subsection.8.5.2}%
+\contentsline {subsection}{\numberline {8.5.3}Architecture}{79}{subsection.8.5.3}%
+\contentsline {subsection}{\numberline {8.5.4}Training Objectives}{79}{subsection.8.5.4}%
+\contentsline {section}{\numberline {8.6}xVA Calculation}{80}{section.8.6}%
+\contentsline {part}{IV\hspace {1em}Results and Analysis}{81}{part.4}%
+\contentsline {part}{V\hspace {1em}Conclusion and Future Work}{82}{part.5}%
+\contentsline {part}{VI\hspace {1em}Appendices}{83}{part.6}%
+\contentsline {chapter}{\numberline {A}Mathematical Proofs and Derivations}{84}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Code Implementation Details}{85}{appendix.B}%
+\contentsline {chapter}{\numberline {C}Additional Numerical Results}{86}{appendix.C}%
+\contentsline {part}{References}{93}{appendix*.39}%
